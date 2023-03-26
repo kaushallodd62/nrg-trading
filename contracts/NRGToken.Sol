@@ -1,0 +1,61 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+contract NRGToken {
+    // state variables
+    string public name = "NRG Token";
+    string public symbol = "NRG";
+    string public standard = "NRG Token v1.0";
+    uint256 public totalSupply;
+    address public owner;
+
+    // events
+    event Transfer(address indexed _from, address indexed _to, uint256 _value);
+
+    // mappings
+    mapping(address => uint256) public balanceOf;
+
+    // constructor
+    constructor(uint256 _initialSupply) {
+        balanceOf[msg.sender] = _initialSupply * (10 ** 18);
+        totalSupply = _initialSupply* (10 ** 18);
+        owner = msg.sender;
+        emit Transfer(address(0), msg.sender, _initialSupply* (10 ** 18));
+    }
+
+    // functions
+    function transfer(address _to, uint256 _value) public returns (bool success) {
+        _value = _value * (10 ** 18);
+        require(balanceOf[msg.sender] >= _value);
+        balanceOf[msg.sender] -= _value;
+        balanceOf[_to] += _value;
+        emit Transfer(msg.sender, _to, _value);
+        return true;
+    }
+
+    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
+        _value = _value * (10 ** 18);
+        require(_value <= balanceOf[_from]);
+        balanceOf[_from] -= _value;
+        balanceOf[_to] += _value;
+        emit Transfer(_from, _to, _value);
+        return true;
+    }
+
+    function mint(uint256 _value) public {
+        require(msg.sender == owner);
+        _value = _value * (10 ** 18);
+        balanceOf[owner] += _value;
+        totalSupply += _value;
+        emit Transfer(address(0), owner, _value);
+    }
+
+    function burn(uint256 _value) public {
+        require(msg.sender == owner);
+        _value = _value * (10 ** 18);
+        require(_value <= balanceOf[owner]);
+        balanceOf[owner] -= _value;
+        totalSupply -= _value;
+        emit Transfer(owner, address(0), _value);
+    }
+}

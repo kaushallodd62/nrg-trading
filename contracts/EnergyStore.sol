@@ -26,7 +26,6 @@ contract EnergyStore {
     uint64 constant GWh = 1000* MWh;
     uint64 constant TWh = 1000* GWh;
     uint64 constant maxEnergy = 18446* GWh;
-    uint64 constant nrgToken = KWh;
 
     struct Offer{
 
