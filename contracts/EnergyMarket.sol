@@ -51,8 +51,8 @@ contract EnergyMarket {
     
     // Producer places an offer
     function placeOffer (address _addrSeller, string memory _nameSeller, uint256 _energyOffered) public {
-        require(msg.sender == _addrSeller);
-        require(_energyOffered > 0);
+        require(msg.sender == _addrSeller, "Offer can be placed only by the user calling this function");
+        require(_energyOffered > 0, "Energy offered must be greater than 0");
         Offer memory o;
         o.addrSeller=_addrSeller;
         o.nameSeller=_nameSeller;
@@ -65,8 +65,8 @@ contract EnergyMarket {
   
     // Consumer places a demand
     function placeDemand (address _addrBuyer, string memory _nameBuyer, uint256 _energyDemanded) public {
-        require(msg.sender == _addrBuyer);
-        require(_energyDemanded > 0);
+        require(msg.sender == _addrBuyer, "Demand can be placed only by the user calling this function");
+        require(_energyDemanded > 0, "Energy demanded must be greater than 0");
         Demand memory d;
         d.addrBuyer=_addrBuyer;
         d.nameBuyer=_nameBuyer;
@@ -80,8 +80,8 @@ contract EnergyMarket {
     // Revoke an offer
     function revokeOffer (uint256 _idOffer, address _addr) public {
         Offer memory o = offers[_idOffer];
-        require(o.addrSeller == _addr);
-        require(msg.sender == o.addrSeller || msg.sender == owner);
+        require(o.addrSeller == _addr, "Address provided doesn't match the address of the user who placed the offer");
+        require(msg.sender == o.addrSeller || msg.sender == owner, "Offer can be revoked only by the user who placed it or by the owner of the contract");
         delete offers[_idOffer];
         for(uint i=_idOffer;i<numberOfOffers-1;i++){
             offers[i]=offers[i+1];
@@ -94,8 +94,8 @@ contract EnergyMarket {
     // Revoke a demand
     function revokeDemand (uint256 _idDemand, address _addr) public {
         Demand memory d = demands[_idDemand];
-        require(d.addrBuyer == _addr);
-        require(msg.sender == d.addrBuyer || msg.sender == owner);
+        require(d.addrBuyer == _addr, "Address provided doesn't match the address of the user who placed the demand");
+        require(msg.sender == d.addrBuyer || msg.sender == owner, "Demand can be revoked only by the user who placed it or by the owner of the contract");
         delete demands[_idDemand];
         for(uint i=_idDemand;i<numberOfDemands-1;i++){
             demands[i]=demands[i+1];
@@ -181,10 +181,10 @@ contract EnergyMarket {
         address addrBuyer = demands[_idDemand].addrBuyer;
         string memory nameBuyer = demands[_idDemand].nameBuyer;
         uint256 energyDemanded = demands[_idDemand].energyDemanded;
-        require(msg.sender == addrSeller || msg.sender == addrBuyer);
-        require(energyOffered == energyDemanded);
+        require(msg.sender == addrSeller || msg.sender == addrBuyer, "Deal can be made only by the buyer or the seller");
+        require(energyOffered == energyDemanded, "Energy offered must be equal to energy demanded");
         uint256 NRGprice = energyOffered;
-        require(tokenContract.balanceOf(addrBuyer) >= NRGprice * (10**18));
+        require(tokenContract.balanceOf(addrBuyer) >= NRGprice * (10**18), "Buyer doesn't have enough NRG tokens");
         tokenContract.transferFrom(addrBuyer, addrSeller, NRGprice);
         delete offers[_idOffer];
         for(uint i=_idOffer;i<numberOfOffers-1;i++){
