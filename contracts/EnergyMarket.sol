@@ -6,10 +6,10 @@ import "./NRGToken.sol";
 contract EnergyMarket {
     
     // state variables
-    NRGToken private tokenContract;
+    NRGToken private immutable tokenContract;
     uint256 private numberOfOffers;
     uint256 private numberOfDemands;
-    address private owner;
+    address public immutable owner;
     
     // structures
     struct Offer {
