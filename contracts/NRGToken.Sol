@@ -18,13 +18,16 @@ contract NRGToken {
     // constructor
     constructor(uint256 _initialSupply) {
         balanceOf[msg.sender] = _initialSupply * (10 ** 18);
-        totalSupply = _initialSupply* (10 ** 18);
+        totalSupply = _initialSupply * (10 ** 18);
         owner = msg.sender;
-        emit Transfer(address(0), msg.sender, _initialSupply* (10 ** 18));
+        emit Transfer(address(0), msg.sender, _initialSupply * (10 ** 18));
     }
 
     // functions
-    function transfer(address _to, uint256 _value) public returns (bool success) {
+    function transfer(
+        address _to,
+        uint256 _value
+    ) public returns (bool success) {
         _value = _value * (10 ** 18);
         require(balanceOf[msg.sender] >= _value);
         balanceOf[msg.sender] -= _value;
@@ -33,7 +36,11 @@ contract NRGToken {
         return true;
     }
 
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
+    function transferFrom(
+        address _from,
+        address _to,
+        uint256 _value
+    ) public returns (bool success) {
         _value = _value * (10 ** 18);
         require(_value <= balanceOf[_from]);
         balanceOf[_from] -= _value;
