@@ -1,81 +1,54 @@
-const { MongoClient } = require('mongodb');
+const { MongoClient } = require("mongodb");
+ 
+// Replace the following with your Atlas connection string                                                                                                                                        
+const url = "mongodb+srv://abhishek:abhishek@cluster0.7mvnmiz.mongodb.net/?retryWrites=true&w=majority";
+const client = new MongoClient(url);
 
-// Connection URI and database name
-const uri = 'mongodb://localhost:27017';
-const dbName = 'mydatabase';
+const dbName = "mydatabase";
 
-// Create a new MongoClient
-const client = new MongoClient(uri);
+// const userDataSchema = {
+//   userid: Number,
+//   name: String,
+//   email: String,
+//   isProducer: Boolean,
+//   isConsumer: Boolean,
+//   registerDate: Date
+// };
 
-// Connect to the MongoClient
-client.connect(err => {
-  if (err) {
-    console.log(err);
-    return;
-  }
+async function run() {
+    try {
+        await client.connect();
+        console.log("Connected correctly to server");
+        const db = client.db(dbName);
+        // Use the collection "people"
+        const col = db.collection("users");
 
-  console.log('Connected successfully to server');
-
-  // Get the database object
-  const db = client.db(dbName);
-
-  // Create a new collection
-  const collection = db.collection('users');
-
-  // Insert some documents
-  collection.insertMany([
-    {
-      userid: 1,
-      name: 'John Doe',
-      email: 'johndoe@example.com',
-      isProducer: false,
-      isConsumer: true,
-      registerDate: new Date('2022-01-01')
-    },
-    {
-      userid: 2,
-      name: 'Jane Smith',
-      email: 'janesmith@example.com',
-      isProducer: true,
-      isConsumer: false,
-      registerDate: new Date('2022-01-02')
-    },
-    {
-      userid: 3,
-      name: 'Bob Johnson',
-      email: 'bobjohnson@example.com',
-      isProducer: true,
-      isConsumer: true,
-      registerDate: new Date('2022-01-03')
-    }
-  ], (err, result) => {
-    if (err) {
-      console.log(err);
-      return;
-    }
-
-    console.log(`${result.insertedCount} documents inserted into the collection`);
-
-    // Find all documents in the collection
-    collection.find({}).toArray((err, documents) => {
-      if (err) {
-        console.log(err);
-        return;
+        // Construct a document                                                                                                                                                              
+        let personDocument = {
+          "userid": 1,
+          "name": { "first": "Alan", "last": "Turing" },
+          "email": "alanturing@gmail.com",
+          "isProducer": true,
+          "isConsumer": true,
+          "registerDate": new Date(1912, 5, 23) // May 23, 1912                                                                                                                                 
+          
       }
+      // Insert a single document, wait for promise so we can read it back
+      const p = await col.insertOne(personDocument);
+      // Find one document
+      const myDoc = await col.findOne();
+      // Print to the console
+      console.log(myDoc);
 
-      console.log(`Found ${documents.length} documents in the collection`);
-      console.log(documents);
-    });
+        
 
-    // Find documents that match a query
-    collection.find({ isProducer: true }).toArray((err, documents) => {
-      if (err) {
-        console.log(err);
-        return;
-      }
+    } catch (err) {
+        console.log(err.stack);
+    }
+    finally {
+        await client.close();
+    }
+}
 
-      console.log(`Found ${documents.length} documents that match the query`);
-      console.log(documents);
-    });
-  });
-});
+
+run().catch(console.dir);
