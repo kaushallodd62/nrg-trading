@@ -4,310 +4,338 @@ pragma solidity ^0.8.18;
 import "./NRGToken.sol";
 
 contract EnergyMarket {
-    // state variables
-    NRGToken private immutable tokenContract;
-    uint256 private numberOfOffers;
-    uint256 private numberOfDemands;
-    address public immutable owner;
+    // State Variables
+    NRGToken internal immutable tokenContract;
+    uint256 internal totalEnergySupplied;
+    uint256 internal totalEnergyDemanded;
+    uint256 internal totalUsers;
+    address internal immutable DSO;
+    uint256 internal constant MAX_ENERGYPRICE = 555;
+    uint256 internal etime;
+    uint256 internal supplyIndex;
+    uint256 internal demandIndex;
 
-    // structures
-    struct Offer {
-        uint256 idOffer;
-        address addrSeller;
-        string nameSeller;
-        uint256 energyOffered;
+    // Enum
+    enum EnergyState {
+        Register, // 0
+        Injected, // 1
+        Board, // 2
+        Match, // 3
+        Purchased // 4
+    }
+
+    // Structures
+    struct EnergyOwnership {
+        address addrOwner;
+        uint256 energyAmount;
+        uint256 energyState;
+        uint256 timestamp;
+    }
+    struct Supply {
+        address addrProsumer;
+        uint256 energySupplied;
     }
     struct Demand {
-        uint256 idDemand;
-        address addrBuyer;
-        string nameBuyer;
+        address addrConsumer;
         uint256 energyDemanded;
     }
+    struct EnergyMatched {
+        address addrProsumer;
+        address addrConsumer;
+        uint256 energyAmount;
+        uint256 timestamp;
+    }
 
-    // mappings
-    mapping(uint256 => Demand) private demands;
-    mapping(uint256 => Offer) private offers;
+    // Mappings
+    mapping(address => uint256) internal addrIndex;
 
-    // events
-    event OfferPlaced(
-        uint256 idOffer,
-        address addrSeller,
-        string nameSeller,
-        uint256 energyOffered
-    );
-    event DemandPlaced(
-        uint256 idDemand,
-        address addrBuyer,
-        string nameBuyer,
-        uint256 energyDemanded
-    );
-    event OfferRevoked(
-        uint256 idOffer,
-        address addrSeller,
-        string nameSeller,
-        uint256 energyOffered
-    );
-    event DemandRevoked(
-        uint256 idDemand,
-        address addrBuyer,
-        string nameBuyer,
-        uint256 energyDemanded
-    );
-    event DealMade(
-        uint256 idOffer,
-        uint256 idDemand,
-        address addrSeller,
-        string nameSeller,
-        uint256 energyOffered,
-        address addrBuyer,
-        string nameBuyer,
-        uint256 energyDemanded,
-        uint256 NRGprice
-    );
+    // Arrays
+    EnergyOwnership[][] internal energys;
+    EnergyOwnership[] energy;
+    Supply[] internal supplies;
+    Demand[] internal demands;
+    EnergyMatched[] internal matches;
 
-    // constructor
+    // Events
+    event EnergyMatchedCheck(
+        address addrProsumer,
+        address addrConsumer,
+        uint256 value,
+        uint256 timestamp
+    );
+    event EnergyCheck(
+        address addrOwner,
+        uint256 energyAmount,
+        uint256 energyState,
+        uint256 timestamp
+    );
+    event RequestCheck(address addr, uint256 amount);
+    event RoundStart(uint256 stime, uint256 etime);
+    event Gen(uint256 gen);
+
+    // Constructor
     constructor(NRGToken _tokenContract) {
-        numberOfOffers = 0;
-        numberOfDemands = 0;
         tokenContract = _tokenContract;
-        owner = msg.sender;
+        DSO = msg.sender;
     }
 
-    // Get the current user
-    function getCurrentUser() public view returns (address) {
-        return msg.sender;
+    // Functions
+
+    // Round Start
+    function roundStart() public {
+        if (msg.sender != DSO) revert();
+        uint256 stime = block.timestamp;
+        etime = stime + 1 hours;
+        totalEnergyDemanded = 0;
+        totalEnergySupplied = 0;
+        emit RoundStart(stime, etime);
     }
 
-    // Producer places an offer
-    function placeOffer(
-        address _addrSeller,
-        string memory _nameSeller,
-        uint256 _energyOffered
-    ) public {
-        require(
-            msg.sender == _addrSeller,
-            "Offer can be placed only by the user calling this function"
+    // Register
+    function register() public {
+        addrIndex[msg.sender] = totalUsers;
+        EnergyOwnership memory _energy = EnergyOwnership(
+            msg.sender,
+            0,
+            uint256(EnergyState.Register),
+            block.timestamp
         );
-        require(_energyOffered > 0, "Energy offered must be greater than 0");
-        Offer memory o;
-        o.addrSeller = _addrSeller;
-        o.nameSeller = _nameSeller;
-        o.energyOffered = _energyOffered;
-        o.idOffer = numberOfOffers;
-        offers[numberOfOffers] = o;
-        numberOfOffers++;
-        emit OfferPlaced(
-            o.idOffer,
-            o.addrSeller,
-            o.nameSeller,
-            o.energyOffered
+        energy.push(_energy);
+        energys.push(energy);
+
+        emit EnergyCheck(
+            energys[totalUsers][0].addrOwner,
+            energys[totalUsers][0].energyAmount,
+            energys[totalUsers][0].energyState,
+            energys[totalUsers][0].timestamp
         );
+        totalUsers++;
+        delete energy;
     }
 
-    // Consumer places a demand
-    function placeDemand(
-        address _addrBuyer,
-        string memory _nameBuyer,
-        uint256 _energyDemanded
-    ) public {
-        require(
-            msg.sender == _addrBuyer,
-            "Demand can be placed only by the user calling this function"
-        );
-        require(_energyDemanded > 0, "Energy demanded must be greater than 0");
-        Demand memory d;
-        d.addrBuyer = _addrBuyer;
-        d.nameBuyer = _nameBuyer;
-        d.energyDemanded = _energyDemanded;
-        d.idDemand = numberOfDemands;
-        demands[numberOfDemands] = d;
-        numberOfDemands++;
-        emit DemandPlaced(
-            d.idDemand,
-            d.addrBuyer,
-            d.nameBuyer,
-            d.energyDemanded
-        );
-    }
+    // Inject Energy (Ei)
+    function inject(address _owner, uint256 _amount) public {
+        if (msg.sender != DSO) revert();
 
-    // Revoke an offer
-    function revokeOffer(uint256 _idOffer, address _addr) public {
-        Offer memory o = offers[_idOffer];
-        require(
-            o.addrSeller == _addr,
-            "Address provided doesn't match the address of the user who placed the offer"
+        EnergyOwnership memory _energy = EnergyOwnership(
+            _owner,
+            _amount,
+            uint256(EnergyState.Injected),
+            block.timestamp
         );
-        require(
-            msg.sender == o.addrSeller || msg.sender == owner,
-            "Offer can be revoked only by the user who placed it or by the owner of the contract"
-        );
-        delete offers[_idOffer];
-        for (uint i = _idOffer; i < numberOfOffers - 1; i++) {
-            offers[i] = offers[i + 1];
-        }
-        offers[numberOfOffers - 1] = Offer(0, address(0), "", 0);
-        numberOfOffers--;
-        emit OfferRevoked(
-            _idOffer,
-            o.addrSeller,
-            o.nameSeller,
-            o.energyOffered
-        );
-    }
+        uint256 i = addrIndex[_owner];
+        energys[i].push(_energy);
+        uint256 j = energys[i].length - 1;
 
-    // Revoke a demand
-    function revokeDemand(uint256 _idDemand, address _addr) public {
-        Demand memory d = demands[_idDemand];
-        require(
-            d.addrBuyer == _addr,
-            "Address provided doesn't match the address of the user who placed the demand"
+        emit EnergyCheck(
+            energys[i][j].addrOwner,
+            energys[i][j].energyAmount,
+            energys[i][j].energyState,
+            energys[i][j].timestamp
         );
-        require(
-            msg.sender == d.addrBuyer || msg.sender == owner,
-            "Demand can be revoked only by the user who placed it or by the owner of the contract"
-        );
-        delete demands[_idDemand];
-        for (uint i = _idDemand; i < numberOfDemands - 1; i++) {
-            demands[i] = demands[i + 1];
-        }
-        demands[numberOfDemands - 1] = Demand(0, address(0), "", 0);
-        numberOfDemands--;
-        emit DemandRevoked(
-            _idDemand,
-            d.addrBuyer,
-            d.nameBuyer,
-            d.energyDemanded
-        );
-    }
 
-    // Get the number of offers
-    function getOffersLength() public view returns (uint256) {
-        return (numberOfOffers);
-    }
-
-    // Get the number of demands
-    function getDemandsLength() public view returns (uint256) {
-        return (numberOfDemands);
-    }
-
-    // Get the offer by id
-    function getOfferById(
-        uint256 _id
-    ) public view returns (address, string memory, uint256) {
-        return (
-            offers[_id].addrSeller,
-            offers[_id].nameSeller,
-            offers[_id].energyOffered
-        );
-    }
-
-    // Get the demand by id
-    function getDemandById(
-        uint256 _id
-    ) public view returns (address, string memory, uint256) {
-        return (
-            demands[_id].addrBuyer,
-            demands[_id].nameBuyer,
-            demands[_id].energyDemanded
-        );
-    }
-
-    // Get all offers by address
-    function getOffersByAddress(
-        address _addr
-    ) public view returns (Offer[] memory) {
-        Offer[] memory offersTab = new Offer[](numberOfOffers);
-        uint256 j = 0;
-
-        for (uint i = 0; i < numberOfOffers; i++) {
-            if (offers[i].addrSeller == _addr) {
-                offersTab[j] = offers[i];
-                j++;
+        // Aggregation
+        for (uint256 k = j; k > 1; k--) {
+            if (energys[i][k].energyState == uint256(EnergyState.Injected)) {
+                energys[i][1].energyAmount += energys[i][k].energyAmount;
+                energys[i][1].timestamp = block.timestamp;
+                delete energys[i][k];
             }
         }
-        return (offersTab);
+        emit Gen(0);
     }
 
-    // Get all demands by address
-    function getDemandsByAddress(
-        address _addr
-    ) public view returns (Demand[] memory) {
-        Demand[] memory demandsTab = new Demand[](numberOfDemands);
-        uint256 j = 0;
+    // Request to sell amount of intent to sell (Si)
+    function requestSell(uint256 _amount) public {
+        uint256 i = addrIndex[msg.sender];
+        uint256 j = energys[i].length - 1;
 
-        for (uint i = 0; i < numberOfDemands; i++) {
-            if (demands[i].addrBuyer == _addr) {
-                demandsTab[j] = demands[i];
-                j++;
+        // Aggregation
+        for (uint256 k = j; k > 1; k--) {
+            if (energys[i][k].energyState == uint256(EnergyState.Injected)) {
+                energys[i][1].energyAmount += energys[i][k].energyAmount;
+                energys[i][1].timestamp = block.timestamp;
+                delete energys[i][k];
             }
         }
-        return (demandsTab);
+
+        if (energys[i][1].energyAmount < _amount) revert();
+        if (block.timestamp > etime) revert();
+
+        EnergyOwnership memory _energy = EnergyOwnership(
+            msg.sender,
+            _amount,
+            uint256(EnergyState.Board),
+            block.timestamp
+        );
+        energys[i].push(_energy);
+        energys[i][1].energyAmount -= _amount;
+
+        Supply memory _supply = Supply(msg.sender, _amount);
+        supplies.push(_supply);
+        supplyIndex++;
+        totalEnergySupplied += _amount;
+
+        emit RequestCheck(msg.sender, _amount);
     }
 
-    // Get all offers
-    function getAllOffers() public view returns (Offer[] memory) {
-        Offer[] memory offersTab = new Offer[](numberOfOffers);
+    // Request to buy amount of intent to buy (Di)
+    function requestBuy(uint256 _amount) public {
+        if (_amount == 0) revert();
+        if (_amount * MAX_ENERGYPRICE > tokenContract.balanceOf(msg.sender))
+            revert();
+        if (block.timestamp > etime) revert();
 
-        for (uint i = 0; i < numberOfOffers; i++) {
-            offersTab[i] = offers[i];
-        }
-        return (offersTab);
+        tokenContract.decreaseApproval(
+            DSO,
+            tokenContract.balanceOf(msg.sender)
+        );
+
+        Demand memory demand = Demand(msg.sender, _amount);
+        demands.push(demand);
+        demandIndex++;
+        totalEnergyDemanded += _amount;
+        tokenContract.approve(DSO, _amount * MAX_ENERGYPRICE);
+
+        emit RequestCheck(msg.sender, _amount);
     }
 
-    // Get all demands
-    function getAllDemands() public view returns (Demand[] memory) {
-        Demand[] memory demandsTab = new Demand[](numberOfDemands);
+    // Match
+    function matching() public {
+        etime = block.timestamp;
+        // q - Demand/Supply Ratio
+        uint256 q = 1;
+        uint256 tradedSupplyIndex;
+        uint256 tradedDemandIndex;
 
-        for (uint i = 0; i < numberOfDemands; i++) {
-            demandsTab[i] = demands[i];
+        if (totalEnergySupplied > totalEnergyDemanded) {
+            q = (totalEnergyDemanded * 100) / totalEnergySupplied;
+
+            // Setting matched (actually sold) energy (Smi)
+            for (uint256 i = 0; i < supplyIndex; i++) {
+                supplies[i].energySupplied =
+                    (supplies[i].energySupplied * q) /
+                    100;
+
+                uint256 addr_i = addrIndex[supplies[i].addrProsumer];
+                uint256 j = energys[addr_i].length - 1;
+                energys[addr_i][1].energyAmount +=
+                    energys[addr_i][j].energyAmount -
+                    (energys[addr_i][j].energyAmount * q) /
+                    100;
+                energys[addr_i][1].timestamp = block.timestamp;
+                energys[addr_i][j].energyAmount =
+                    (energys[addr_i][j].energyAmount * q) /
+                    100;
+                energys[addr_i][j].energyState = uint256(EnergyState.Match);
+            }
+        } else if (totalEnergySupplied < totalEnergyDemanded) {
+            q = (totalEnergySupplied * 100) / totalEnergyDemanded;
+
+            // Setting matched (actually bought) energy (Dmi)
+            for (uint256 i = 0; i < demandIndex; i++) {
+                demands[i].energyDemanded =
+                    (demands[i].energyDemanded * q) /
+                    100;
+            }
         }
-        return (demandsTab);
+
+        // Getting energySupplied and energyDemanded
+        uint256 sellingAmount = supplies[tradedSupplyIndex].energySupplied;
+        uint256 buyingAmount = demands[tradedDemandIndex].energyDemanded;
+
+        // Matching
+        do {
+            if (sellingAmount > buyingAmount) {
+                // Matching buyingAmount of energy
+                sellingAmount -= buyingAmount;
+                EnergyMatched memory _match = EnergyMatched(
+                    supplies[tradedSupplyIndex].addrProsumer,
+                    demands[tradedDemandIndex].addrConsumer,
+                    buyingAmount,
+                    block.timestamp
+                );
+                matches.push(_match);
+                emit EnergyMatchedCheck(
+                    _match.addrProsumer,
+                    _match.addrConsumer,
+                    _match.energyAmount,
+                    _match.timestamp
+                );
+                tradedDemandIndex++;
+                if (tradedDemandIndex >= demandIndex) break;
+                buyingAmount = demands[tradedDemandIndex].energyDemanded;
+            } else if (sellingAmount < buyingAmount) {
+                // Matching sellingAmount of energy
+                buyingAmount -= sellingAmount;
+                EnergyMatched memory _match = EnergyMatched(
+                    supplies[tradedSupplyIndex].addrProsumer,
+                    demands[tradedDemandIndex].addrConsumer,
+                    sellingAmount,
+                    block.timestamp
+                );
+                matches.push(_match);
+                emit EnergyMatchedCheck(
+                    _match.addrProsumer,
+                    _match.addrConsumer,
+                    _match.energyAmount,
+                    _match.timestamp
+                );
+                tradedSupplyIndex++;
+                if (tradedSupplyIndex >= supplyIndex) break;
+                sellingAmount = supplies[tradedSupplyIndex].energySupplied;
+            } else {
+                // Matching equal energy
+                EnergyMatched memory _match = EnergyMatched(
+                    supplies[tradedSupplyIndex].addrProsumer,
+                    demands[tradedDemandIndex].addrConsumer,
+                    sellingAmount,
+                    block.timestamp
+                );
+                matches.push(_match);
+                emit EnergyMatchedCheck(
+                    _match.addrProsumer,
+                    _match.addrConsumer,
+                    _match.energyAmount,
+                    _match.timestamp
+                );
+                tradedSupplyIndex++;
+                tradedDemandIndex++;
+                if (tradedSupplyIndex >= supplyIndex) break;
+                if (tradedDemandIndex >= demandIndex) break;
+                sellingAmount = supplies[tradedSupplyIndex].energySupplied;
+                buyingAmount = demands[tradedDemandIndex].energyDemanded;
+            }
+        } while (true);
+
+        for (uint256 i = 0; i < totalUsers; i++) {
+            for (uint256 j = energys[i].length - 1; j > 1; j--) {
+                if (energys[i][j].energyAmount == 0) delete energys[i][j];
+            }
+        }
+
+        emit Gen(0);
     }
 
-    // Make a deal
-    function makeDeal(uint256 _idOffer, uint256 _idDemand) public {
-        address addrSeller = offers[_idOffer].addrSeller;
-        string memory nameSeller = offers[_idOffer].nameSeller;
-        uint256 energyOffered = offers[_idOffer].energyOffered;
-        address addrBuyer = demands[_idDemand].addrBuyer;
-        string memory nameBuyer = demands[_idDemand].nameBuyer;
-        uint256 energyDemanded = demands[_idDemand].energyDemanded;
-        require(
-            msg.sender == addrSeller || msg.sender == addrBuyer,
-            "Deal can be made only by the buyer or the seller"
-        );
-        require(
-            energyOffered == energyDemanded,
-            "Energy offered must be equal to energy demanded"
-        );
-        uint256 NRGprice = energyOffered;
-        require(
-            tokenContract.balanceOf(addrBuyer) >= NRGprice * (10 ** 18),
-            "Buyer doesn't have enough NRG tokens"
-        );
-        tokenContract.transferFrom(addrBuyer, addrSeller, NRGprice);
-        delete offers[_idOffer];
-        for (uint i = _idOffer; i < numberOfOffers - 1; i++) {
-            offers[i] = offers[i + 1];
+    // Trade
+    function trade(uint256 _price) public {
+        uint256 price = _price;
+
+        for (uint256 i = 0; i < matches.length; i++) {
+            tokenContract.transferFrom(
+                matches[i].addrConsumer,
+                matches[i].addrProsumer,
+                matches[i].energyAmount * price
+            );
+            EnergyOwnership memory _energy = EnergyOwnership(
+                matches[i].addrConsumer,
+                matches[i].energyAmount,
+                uint256(EnergyState.Purchased),
+                block.timestamp
+            );
+            energys[addrIndex[matches[i].addrConsumer]].push(_energy);
         }
-        offers[numberOfOffers - 1] = Offer(0, address(0), "", 0);
-        numberOfOffers--;
-        delete demands[_idDemand];
-        for (uint i = _idDemand; i < numberOfDemands - 1; i++) {
-            demands[i] = demands[i + 1];
-        }
-        demands[numberOfDemands - 1] = Demand(0, address(0), "", 0);
-        numberOfDemands--;
-        emit DealMade(
-            _idOffer,
-            _idDemand,
-            addrSeller,
-            nameSeller,
-            energyOffered,
-            addrBuyer,
-            nameBuyer,
-            energyDemanded,
-            NRGprice
-        );
+        delete matches;
+        emit Gen(0);
     }
 }

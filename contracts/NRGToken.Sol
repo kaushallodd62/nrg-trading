@@ -1,38 +1,101 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
+library SafeMath {
+    function mul(uint256 a, uint256 b) internal returns (uint256) {
+        if (a == 0) return 0;
+        uint256 c = a * b;
+        if (c / a != b) revert();
+        return c;
+    }
+
+    function div(uint256 a, uint256 b) internal returns (uint256) {
+        uint256 c = a / b;
+        return c;
+    }
+
+    function sub(uint256 a, uint256 b) internal returns (uint256) {
+        if (a < b) revert();
+        return a - b;
+    }
+
+    function add(uint256 a, uint256 b) internal returns (uint256) {
+        uint256 c = a + b;
+        if (a >= c) revert();
+        return c;
+    }
+}
+
 contract NRGToken {
-    // state variables
+    // State Variables
     string public constant NAME = "NRG Token";
     string public constant SYMBOL = "NRG";
     string public constant STANDARD = "NRG Token v1.0";
-    uint256 public totalSupply;
-    address public immutable owner;
+    uint8 public constant DECIMALS = 18;
+    uint256 public constant INITIAL_SUPPLY =
+        10000000 * (10 ** uint256(DECIMALS));
+    uint256 internal totalSupply;
+    address private immutable owner;
 
-    // events
-    event Transfer(address indexed _from, address indexed _to, uint256 _value);
+    // Using SafeMath Library
+    using SafeMath for uint256;
 
-    // mappings
-    mapping(address => uint256) public balanceOf;
+    // Events
+    event Transfer(
+        address indexed _from,
+        address indexed _to,
+        uint256 _value,
+        uint256 balanceOfSender,
+        uint256 balanceOfReciever
+    );
+    event Approval(
+        address indexed _owner,
+        address indexed _spender,
+        uint256 _value
+    );
 
-    // constructor
-    constructor(uint256 _initialSupply) {
-        balanceOf[msg.sender] = _initialSupply * (10 ** 18);
-        totalSupply = _initialSupply * (10 ** 18);
+    // Mappings
+    mapping(address => uint256) internal balances;
+    mapping(address => mapping(address => uint256)) internal allowed;
+
+    // Constructor
+    constructor() {
+        totalSupply = INITIAL_SUPPLY;
+        balances[msg.sender] = INITIAL_SUPPLY;
+        emit Transfer(
+            address(0),
+            msg.sender,
+            INITIAL_SUPPLY,
+            balances[address(0)],
+            balances[msg.sender]
+        );
         owner = msg.sender;
-        emit Transfer(address(0), msg.sender, _initialSupply * (10 ** 18));
     }
 
-    // functions
+    // Functions
+    function totalSupply() public view returns (uint256) {
+        return totalSupply;
+    }
+
+    function balanceOf(address _owner) public view returns (uint256 balance) {
+        return balances[_owner];
+    }
+
     function transfer(
         address _to,
         uint256 _value
     ) public returns (bool success) {
-        _value = _value * (10 ** 18);
-        require(balanceOf[msg.sender] >= _value);
-        balanceOf[msg.sender] -= _value;
-        balanceOf[_to] += _value;
-        emit Transfer(msg.sender, _to, _value);
+        if (_to == address(0)) revert();
+        if (_value > balances[msg.sender]) revert();
+        balances[msg.sender] = balances[msg.sender].sub(_value);
+        balances[_to] = balances[_to].add(_value);
+        emit Transfer(
+            msg.sender,
+            _to,
+            _value,
+            balances[msg.sender],
+            balances[_to]
+        );
         return true;
     }
 
@@ -41,28 +104,54 @@ contract NRGToken {
         address _to,
         uint256 _value
     ) public returns (bool success) {
-        _value = _value * (10 ** 18);
-        require(_value <= balanceOf[_from]);
-        balanceOf[_from] -= _value;
-        balanceOf[_to] += _value;
-        emit Transfer(_from, _to, _value);
+        if (_to == address(0)) revert();
+        if (_value > balances[_from]) revert();
+        if (_value > allowed[_from][msg.sender]) revert();
+        balances[_from] = balances[_from].sub(_value);
+        balances[_to] = balances[_to].add(_value);
+        allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
+        emit Transfer(_from, _to, _value, balances[_from], balances[_to]);
         return true;
     }
 
-    function mint(uint256 _value) public {
-        require(msg.sender == owner);
-        _value = _value * (10 ** 18);
-        balanceOf[owner] += _value;
-        totalSupply += _value;
-        emit Transfer(address(0), owner, _value);
+    function approve(
+        address _spender,
+        uint256 _value
+    ) public returns (bool success) {
+        allowed[msg.sender][_spender] = _value;
+        emit Approval(msg.sender, _spender, _value);
+        return true;
     }
 
-    function burn(uint256 _value) public {
-        require(msg.sender == owner);
-        _value = _value * (10 ** 18);
-        require(_value <= balanceOf[owner]);
-        balanceOf[owner] -= _value;
-        totalSupply -= _value;
-        emit Transfer(owner, address(0), _value);
+    function allowance(
+        address _owner,
+        address _spender
+    ) public view returns (uint256 remaining) {
+        return allowed[_owner][_spender];
+    }
+
+    function increaseApproval(
+        address _spender,
+        uint256 _addedValue
+    ) public returns (bool success) {
+        allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(
+            _addedValue
+        );
+        emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+        return true;
+    }
+
+    function decreaseApproval(
+        address _spender,
+        uint256 _subtractedValue
+    ) public returns (bool success) {
+        uint256 oldValue = allowed[msg.sender][_spender];
+        if (_subtractedValue > oldValue) {
+            allowed[msg.sender][_spender] = 0;
+        } else {
+            allowed[msg.sender][_spender] = oldValue.sub(_subtractedValue);
+        }
+        emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+        return true;
     }
 }
