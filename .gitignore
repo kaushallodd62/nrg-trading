@@ -1,10 +1,13 @@
 node_modules
-.env
 Resources
+.env
+.prettierignore
+.prettierrc
+.solhintignore
 
 # Hardhat files
-cache
 artifacts
+cache
 gas-reports.txt
 coverage.json
 coverage

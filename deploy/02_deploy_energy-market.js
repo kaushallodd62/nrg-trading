@@ -17,6 +17,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         from: DSO,
         args: args,
         log: true,
+        waitConfirmations: network.config.blockConfirmations || 1,
     });
     log("EnergyMarket deployed at:", energyMarket.address);
 
