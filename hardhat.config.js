@@ -1,4 +1,5 @@
 require("@nomicfoundation/hardhat-toolbox");
+require("hardhat-deploy");
 require("dotenv").config();
 
 const GOERLI_RPC_URL = process.env.GOERLI_RPC_URL;
@@ -11,13 +12,24 @@ const COINMARKETCAP_API_KEY = process.env.COINMARKETCAP_API_KEY;
 module.exports = {
     defaultNetwork: "hardhat",
     networks: {
+        hardhat: {
+            live: false,
+            saveDeployments: true,
+            tags: ["test", "local"],
+        },
+        localhost: {
+            url: HARDHAT_LOCAL_RPC_URL,
+            live: false,
+            saveDeployments: true,
+            tags: ["local"],
+        },
         goerli: {
             url: GOERLI_RPC_URL,
             accounts: [PRIVATE_KEY],
             chainId: 5,
-        },
-        localhost: {
-            url: HARDHAT_LOCAL_RPC_URL,
+            live: true,
+            saveDeployments: true,
+            tags: ["staging"],
         },
     },
     solidity: "0.8.18",
@@ -25,6 +37,7 @@ module.exports = {
         root: "./",
         sources: "./contracts",
         tests: "./test",
+        deploy: "./deploy",
         cache: "./cache",
         artifacts: "./artifacts",
     },
@@ -37,5 +50,40 @@ module.exports = {
     },
     etherscan: {
         apiKey: ETHERSCAN_API_KEY,
+    },
+    namedAccounts: {
+        DSO: {
+            default: 0,
+        },
+        prosumer1: {
+            default: 1,
+        },
+        prosumer2: {
+            default: 2,
+        },
+        prosumer3: {
+            default: 3,
+        },
+        prosumer4: {
+            default: 4,
+        },
+        prosumer5: {
+            default: 5,
+        },
+        consumer1: {
+            default: 6,
+        },
+        consumer2: {
+            default: 7,
+        },
+        consumer3: {
+            default: 8,
+        },
+        consumer4: {
+            default: 9,
+        },
+        consumer5: {
+            default: 10,
+        },
     },
 };

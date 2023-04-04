@@ -57,8 +57,8 @@ contract NRGToken {
         address _to,
         uint256 _value
     ) public returns (bool success) {
-        if (_to == address(0)) revert();
-        if (_value > balances[msg.sender]) revert();
+        if (_to == address(0)) revert("Invalid address");
+        if (_value > balances[msg.sender]) revert("Insufficient balance");
         balances[msg.sender] -= _value;
         balances[_to] += _value;
         emit Transfer(
@@ -76,9 +76,10 @@ contract NRGToken {
         address _to,
         uint256 _value
     ) public returns (bool success) {
-        if (_to == address(0)) revert();
-        if (_value > balances[_from]) revert();
-        if (_value > allowed[_from][msg.sender]) revert();
+        if (_to == address(0)) revert("Invalid address");
+        if (_value > balances[_from]) revert("Insufficient balance");
+        if (_value > allowed[_from][msg.sender])
+            revert("Insufficient allowance");
         balances[_from] -= _value;
         balances[_to] += _value;
         allowed[_from][msg.sender] -= _value;

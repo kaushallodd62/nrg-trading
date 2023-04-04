@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
-import "./NRGToken.sol";
+import "./NRGToken.sol" as nrgToken;
 
 contract EnergyMarket {
     // State Variables
-    NRGToken internal immutable tokenContract;
+    nrgToken.NRGToken internal immutable tokenContract;
     uint256 internal totalEnergySupplied;
     uint256 internal totalEnergyDemanded;
     uint256 internal totalUsers;
@@ -51,7 +51,7 @@ contract EnergyMarket {
 
     // Arrays
     EnergyOwnership[][] internal energys;
-    EnergyOwnership[] energy;
+    EnergyOwnership[] internal energy;
     Supply[] internal supplies;
     Demand[] internal demands;
     EnergyMatched[] internal matches;
@@ -74,7 +74,7 @@ contract EnergyMarket {
     event Gen(uint256 gen);
 
     // Constructor
-    constructor(NRGToken _tokenContract) {
+    constructor(nrgToken.NRGToken _tokenContract) {
         tokenContract = _tokenContract;
         DSO = msg.sender;
     }
@@ -83,7 +83,7 @@ contract EnergyMarket {
 
     // Round Start
     function roundStart() public {
-        if (msg.sender != DSO) revert();
+        if (msg.sender != DSO) revert("Only DSO can start the round");
         uint256 stime = block.timestamp;
         etime = stime + 1 hours;
         totalEnergyDemanded = 0;
@@ -115,7 +115,7 @@ contract EnergyMarket {
 
     // Inject Energy (Ei)
     function inject(address _owner, uint256 _amount) public {
-        if (msg.sender != DSO) revert();
+        if (msg.sender != DSO) revert("Only DSO can inject energy");
 
         EnergyOwnership memory _energy = EnergyOwnership(
             _owner,
@@ -159,8 +159,8 @@ contract EnergyMarket {
             }
         }
 
-        if (energys[i][1].energyAmount < _amount) revert();
-        if (block.timestamp > etime) revert();
+        if (energys[i][1].energyAmount < _amount) revert("Not enough energy");
+        if (block.timestamp > etime) revert("Round is over");
 
         EnergyOwnership memory _energy = EnergyOwnership(
             msg.sender,
@@ -181,10 +181,10 @@ contract EnergyMarket {
 
     // Request to buy amount of intent to buy (Di)
     function requestBuy(uint256 _amount) public {
-        if (_amount == 0) revert();
+        if (_amount == 0) revert("Amount cannot be zero");
         if (_amount * MAX_ENERGYPRICE > tokenContract.balanceOf(msg.sender))
-            revert();
-        if (block.timestamp > etime) revert();
+            revert("Not enough tokens");
+        if (block.timestamp > etime) revert("Round is over");
 
         tokenContract.decreaseApproval(
             DSO,
