@@ -1,4 +1,3 @@
-const hre = require("hardhat");
 const { getDSO } = require("./accounts");
 
 async function main() {
