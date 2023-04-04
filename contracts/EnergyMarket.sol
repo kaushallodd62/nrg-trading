@@ -1,19 +1,139 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
-import "./NRGToken.sol" as nrgToken;
-
 contract EnergyMarket {
     // State Variables
-    nrgToken.NRGToken internal immutable tokenContract;
-    uint256 internal totalEnergySupplied;
-    uint256 internal totalEnergyDemanded;
-    uint256 internal totalUsers;
-    address internal immutable DSO;
-    uint256 internal constant MAX_ENERGYPRICE = 555;
+    string public constant NAME = "NRG Token";
+    string public constant SYMBOL = "NRG";
+    string public constant STANDARD = "NRG Token v1.0";
+    uint8 public constant DECIMALS = 18;
+    uint256 internal constant INITIAL_SUPPLY =
+        10000000 * (10 ** uint256(DECIMALS));
+    uint256 internal _totalSupply;
+    address public immutable DSO;
+
+    // Events
+    event Transfer(
+        address indexed _from,
+        address indexed _to,
+        uint256 _value,
+        uint256 balanceOfSender,
+        uint256 balanceOfReciever
+    );
+    event Approval(
+        address indexed _owner,
+        address indexed _spender,
+        uint256 _value
+    );
+
+    // Mappings
+    mapping(address => uint256) internal balances;
+    mapping(address => mapping(address => uint256)) internal allowed;
+
+    // Constructor
+    constructor() {
+        _totalSupply = INITIAL_SUPPLY;
+        balances[msg.sender] = INITIAL_SUPPLY;
+        emit Transfer(
+            address(0),
+            msg.sender,
+            INITIAL_SUPPLY,
+            balances[address(0)],
+            balances[msg.sender]
+        );
+        DSO = msg.sender;
+    }
+
+    // Functions
+    function totalSupply() public view returns (uint256) {
+        return _totalSupply;
+    }
+
+    function balanceOf(address _owner) public view returns (uint256 balance) {
+        return balances[_owner];
+    }
+
+    function transfer(
+        address _to,
+        uint256 _value
+    ) public returns (bool success) {
+        if (_to == address(0)) revert("Invalid address");
+        if (_value > balances[msg.sender]) revert("Insufficient balance");
+        balances[msg.sender] -= _value;
+        balances[_to] += _value;
+        emit Transfer(
+            msg.sender,
+            _to,
+            _value,
+            balances[msg.sender],
+            balances[_to]
+        );
+        return true;
+    }
+
+    function transferFrom(
+        address _from,
+        address _to,
+        uint256 _value
+    ) public returns (bool success) {
+        if (_to == address(0)) revert("Invalid address");
+        if (_value > balances[_from]) revert("Insufficient balance");
+        if (_value > allowed[_from][msg.sender])
+            revert("Insufficient allowance");
+        balances[_from] -= _value;
+        balances[_to] += _value;
+        allowed[_from][msg.sender] -= _value;
+        emit Transfer(_from, _to, _value, balances[_from], balances[_to]);
+        return true;
+    }
+
+    function approve(
+        address _spender,
+        uint256 _value
+    ) public returns (bool success) {
+        allowed[msg.sender][_spender] = _value;
+        emit Approval(msg.sender, _spender, _value);
+        return true;
+    }
+
+    function allowance(
+        address _owner,
+        address _spender
+    ) public view returns (uint256 remaining) {
+        return allowed[_owner][_spender];
+    }
+
+    function increaseApproval(
+        address _spender,
+        uint256 _addedValue
+    ) public returns (bool success) {
+        allowed[msg.sender][_spender] += _addedValue;
+        emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+        return true;
+    }
+
+    function decreaseApproval(
+        address _spender,
+        uint256 _subtractedValue
+    ) public returns (bool success) {
+        uint256 oldValue = allowed[msg.sender][_spender];
+        if (_subtractedValue > oldValue) {
+            allowed[msg.sender][_spender] = 0;
+        } else {
+            allowed[msg.sender][_spender] = oldValue - _subtractedValue;
+        }
+        emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+        return true;
+    }
+
+    // State Variables
+    uint256 public totalEnergySupplied;
+    uint256 public totalEnergyDemanded;
+    uint256 public totalUsers;
     uint256 internal etime;
     uint256 internal supplyIndex;
     uint256 internal demandIndex;
+    uint256 public constant MAX_ENERGYPRICE = 500 * (10 ** uint256(DECIMALS));
 
     // Enum
     enum EnergyState {
@@ -50,37 +170,31 @@ contract EnergyMarket {
     mapping(address => uint256) internal addrIndex;
 
     // Arrays
-    EnergyOwnership[][] internal energys;
+    EnergyOwnership[][] public energys;
     EnergyOwnership[] internal energy;
-    Supply[] internal supplies;
-    Demand[] internal demands;
-    EnergyMatched[] internal matches;
+    Supply[] public supplies;
+    Demand[] public demands;
+    EnergyMatched[] public matches;
 
     // Events
-    event EnergyMatchedCheck(
-        address addrProsumer,
-        address addrConsumer,
-        uint256 value,
-        uint256 timestamp
-    );
+    event Gen(uint256 gen);
     event EnergyCheck(
         address addrOwner,
         uint256 energyAmount,
         uint256 energyState,
         uint256 timestamp
     );
-    event RequestCheck(address addr, uint256 amount);
     event RoundStart(uint256 stime, uint256 etime);
-    event Gen(uint256 gen);
-
-    // Constructor
-    constructor(nrgToken.NRGToken _tokenContract) {
-        tokenContract = _tokenContract;
-        DSO = msg.sender;
-    }
+    event SellRequestCheck(address addr, uint256 amount);
+    event BuyRequestCheck(address addr, uint256 amount);
+    event EnergyMatchedCheck(
+        address addrProsumer,
+        address addrConsumer,
+        uint256 value,
+        uint256 timestamp
+    );
 
     // Functions
-
     // Round Start
     function roundStart() public {
         if (msg.sender != DSO) revert("Only DSO can start the round");
@@ -116,6 +230,10 @@ contract EnergyMarket {
     // Inject Energy (Ei)
     function inject(address _owner, uint256 _amount) public {
         if (msg.sender != DSO) revert("Only DSO can inject energy");
+        if (
+            energys[addrIndex[_owner]][0].energyState !=
+            uint256(EnergyState.Register)
+        ) revert("Energy is not registered");
 
         EnergyOwnership memory _energy = EnergyOwnership(
             _owner,
@@ -135,12 +253,10 @@ contract EnergyMarket {
         );
 
         // Aggregation
-        for (uint256 k = j; k > 1; k--) {
-            if (energys[i][k].energyState == uint256(EnergyState.Injected)) {
-                energys[i][1].energyAmount += energys[i][k].energyAmount;
-                energys[i][1].timestamp = block.timestamp;
-                delete energys[i][k];
-            }
+        if (j != 1) {
+            energys[i][1].energyAmount += energys[i][j].energyAmount;
+            energys[i][1].timestamp = block.timestamp;
+            energys[i].pop();
         }
         emit Gen(0);
     }
@@ -148,19 +264,8 @@ contract EnergyMarket {
     // Request to sell amount of intent to sell (Si)
     function requestSell(uint256 _amount) public {
         uint256 i = addrIndex[msg.sender];
-        uint256 j = energys[i].length - 1;
-
-        // Aggregation
-        for (uint256 k = j; k > 1; k--) {
-            if (energys[i][k].energyState == uint256(EnergyState.Injected)) {
-                energys[i][1].energyAmount += energys[i][k].energyAmount;
-                energys[i][1].timestamp = block.timestamp;
-                delete energys[i][k];
-            }
-        }
-
         if (energys[i][1].energyAmount < _amount) revert("Not enough energy");
-        if (block.timestamp > etime) revert("Round is over");
+        if (block.timestamp > etime) revert("Not in round time");
 
         EnergyOwnership memory _energy = EnergyOwnership(
             msg.sender,
@@ -176,28 +281,34 @@ contract EnergyMarket {
         supplyIndex++;
         totalEnergySupplied += _amount;
 
-        emit RequestCheck(msg.sender, _amount);
+        emit SellRequestCheck(msg.sender, _amount);
     }
 
     // Request to buy amount of intent to buy (Di)
     function requestBuy(uint256 _amount) public {
         if (_amount == 0) revert("Amount cannot be zero");
-        if (_amount * MAX_ENERGYPRICE > tokenContract.balanceOf(msg.sender))
+        if (_amount * MAX_ENERGYPRICE > balanceOf(msg.sender))
             revert("Not enough tokens");
         if (block.timestamp > etime) revert("Round is over");
 
-        tokenContract.decreaseApproval(
-            DSO,
-            tokenContract.balanceOf(msg.sender)
+        uint256 i = addrIndex[msg.sender];
+        EnergyOwnership memory _energy = EnergyOwnership(
+            msg.sender,
+            _amount,
+            uint256(EnergyState.Board),
+            block.timestamp
         );
+        energys[i].push(_energy);
 
         Demand memory demand = Demand(msg.sender, _amount);
         demands.push(demand);
         demandIndex++;
         totalEnergyDemanded += _amount;
-        tokenContract.approve(DSO, _amount * MAX_ENERGYPRICE);
 
-        emit RequestCheck(msg.sender, _amount);
+        decreaseApproval(DSO, balanceOf(msg.sender));
+        approve(DSO, _amount * MAX_ENERGYPRICE);
+
+        emit BuyRequestCheck(msg.sender, _amount);
     }
 
     // Match
@@ -228,6 +339,7 @@ contract EnergyMarket {
                     (energys[addr_i][j].energyAmount * q) /
                     100;
                 energys[addr_i][j].energyState = uint256(EnergyState.Match);
+                energys[addr_i][j].timestamp = block.timestamp;
             }
         } else if (totalEnergySupplied < totalEnergyDemanded) {
             q = (totalEnergySupplied * 100) / totalEnergyDemanded;
@@ -237,6 +349,12 @@ contract EnergyMarket {
                 demands[i].energyDemanded =
                     (demands[i].energyDemanded * q) /
                     100;
+                energys[addrIndex[demands[i].addrConsumer]][1]
+                    .energyAmount = demands[i].energyDemanded;
+                energys[addrIndex[demands[i].addrConsumer]][1]
+                    .energyState = uint256(EnergyState.Match);
+                energys[addrIndex[demands[i].addrConsumer]][1].timestamp = block
+                    .timestamp;
             }
         }
 
@@ -310,7 +428,12 @@ contract EnergyMarket {
 
         for (uint256 i = 0; i < totalUsers; i++) {
             for (uint256 j = energys[i].length - 1; j > 1; j--) {
-                if (energys[i][j].energyAmount == 0) delete energys[i][j];
+                if (energys[i][j].energyAmount == 0) {
+                    for (uint256 k = j; k < energys[i].length - 1; k++) {
+                        energys[i][k] = energys[i][k + 1];
+                    }
+                    energys[i].pop();
+                }
             }
         }
 
@@ -319,21 +442,21 @@ contract EnergyMarket {
 
     // Trade
     function trade(uint256 _price) public {
+        if (msg.sender != DSO) revert("Only DSO can trade");
         uint256 price = _price;
 
         for (uint256 i = 0; i < matches.length; i++) {
-            tokenContract.transferFrom(
+            transferFrom(
                 matches[i].addrConsumer,
                 matches[i].addrProsumer,
                 matches[i].energyAmount * price
             );
-            EnergyOwnership memory _energy = EnergyOwnership(
-                matches[i].addrConsumer,
-                matches[i].energyAmount,
-                uint256(EnergyState.Purchased),
-                block.timestamp
-            );
-            energys[addrIndex[matches[i].addrConsumer]].push(_energy);
+            energys[addrIndex[matches[i].addrConsumer]][1]
+                .energyAmount = matches[i].energyAmount;
+            energys[addrIndex[matches[i].addrConsumer]][1]
+                .energyState = uint256(EnergyState.Purchased);
+            energys[addrIndex[matches[i].addrConsumer]][1].timestamp = block
+                .timestamp;
         }
         delete matches;
         emit Gen(0);
