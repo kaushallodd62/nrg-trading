@@ -1,4 +1,11 @@
 node_modules
 .env
 Resources
+
+# Hardhat files
+cache
+artifacts
+gas-reports.txt
+coverage.json
+coverage
 ```
