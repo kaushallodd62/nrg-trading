@@ -3,10 +3,9 @@ const { developerChains } = require("../helper-hardhat-config");
 const { verify } = require("../utils/verify");
 
 module.exports = async ({ getNamedAccounts, deployments }) => {
-    const { deploy, log, get } = deployments;
+    const { deploy, log } = deployments;
     const { DSO } = await getNamedAccounts();
-    const nrgToken = await get("NRGToken");
-    const args = [nrgToken.address];
+    const args = [];
 
     log("------------------------------------------------------------------");
     log(
