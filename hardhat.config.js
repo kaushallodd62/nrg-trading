@@ -2,10 +2,11 @@ require("@nomicfoundation/hardhat-toolbox");
 require("hardhat-deploy");
 require("dotenv").config();
 
+const HARDHAT_LOCAL_RPC_URL = "http://127.0.0.1:8545/";
 const GOERLI_RPC_URL = process.env.GOERLI_RPC_URL;
+const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
-const HARDHAT_LOCAL_RPC_URL = "http://127.0.0.1:8545/";
 const COINMARKETCAP_API_KEY = process.env.COINMARKETCAP_API_KEY;
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -27,6 +28,15 @@ module.exports = {
             url: GOERLI_RPC_URL,
             accounts: [PRIVATE_KEY],
             chainId: 5,
+            blockConfirmations: 6,
+            live: true,
+            saveDeployments: true,
+            tags: ["staging"],
+        },
+        sepolia: {
+            url: SEPOLIA_RPC_URL,
+            accounts: [PRIVATE_KEY],
+            chainID: 11155111,
             blockConfirmations: 6,
             live: true,
             saveDeployments: true,
