@@ -11,4 +11,5 @@ cache
 gas-reports.txt
 coverage.json
 coverage
+deployments
 ```
