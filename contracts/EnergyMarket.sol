@@ -29,7 +29,7 @@ contract EnergyMarket {
     uint256 internal constant INITIAL_SUPPLY =
         10000000 * (10 ** uint256(DECIMALS));
     uint256 internal _totalSupply;
-    address public immutable DSO;
+    address internal immutable DSO;
 
     // Mappings
     mapping(address => uint256) internal balances;
@@ -51,6 +51,7 @@ contract EnergyMarket {
 
     // Constructor
     constructor() {
+        DSO = msg.sender;
         _totalSupply = INITIAL_SUPPLY;
         balances[msg.sender] = INITIAL_SUPPLY;
         emit Transfer(
@@ -60,7 +61,6 @@ contract EnergyMarket {
             balances[address(0)],
             balances[msg.sender]
         );
-        DSO = msg.sender;
     }
 
     // Functions
@@ -225,6 +225,10 @@ contract EnergyMarket {
     );
 
     // Functions
+    function getDSO() public view returns (address) {
+        return DSO;
+    }
+
     function roundStart() public {
         if (msg.sender != DSO) revert EnergyMarket__NotDSO();
         uint256 stime = block.timestamp;
