@@ -1,6 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
+// Errors
+error EnergyMarket__InsufficientBalance(uint256 balance, uint256 required);
+error EnergyMarket__InsufficientAllowance(uint256 allowance, uint256 required);
+error EnergyMarket__InvalidAddress(address addr);
+error EnergyMarket__NotDSO();
+error EnergyMarket__NotRegistered();
+error EnergyMarket__InsufficientEnergyInjected(
+    uint256 energyAmount,
+    uint256 required
+);
+error EnergyMarket__OutsideRound();
+error EnergyMarket__ZeroEnergyAmount();
+
+/**
+ * @title A smart contract for Energy Trading
+ * @author Kaushal Lodd
+ * @notice  This contract generates and controls circulation of NRGTokens for facilitating energy trading. It also simulates an energy market where users can register, prosumers can inject energy and supply energy, consumers can demand energy, and the energy market can match the prosumers and consumers based on their energy demands and supplies.
+ * @dev This contract is deployed by the DSO who plays a crucial role in the energy market. The Matching algoritm matches the prosumers and consumers automatically.
+ */
 contract EnergyMarket {
     // State Variables
     string public constant NAME = "NRG Token";
@@ -11,6 +30,10 @@ contract EnergyMarket {
         10000000 * (10 ** uint256(DECIMALS));
     uint256 internal _totalSupply;
     address public immutable DSO;
+
+    // Mappings
+    mapping(address => uint256) internal balances;
+    mapping(address => mapping(address => uint256)) internal allowed;
 
     // Events
     event Transfer(
@@ -25,10 +48,6 @@ contract EnergyMarket {
         address indexed _spender,
         uint256 _value
     );
-
-    // Mappings
-    mapping(address => uint256) internal balances;
-    mapping(address => mapping(address => uint256)) internal allowed;
 
     // Constructor
     constructor() {
@@ -57,8 +76,12 @@ contract EnergyMarket {
         address _to,
         uint256 _value
     ) public returns (bool success) {
-        if (_to == address(0)) revert("Invalid address");
-        if (_value > balances[msg.sender]) revert("Insufficient balance");
+        if (_to == address(0)) revert EnergyMarket__InvalidAddress(_to);
+        if (_value > balances[msg.sender])
+            revert EnergyMarket__InsufficientBalance({
+                balance: balances[msg.sender],
+                required: _value
+            });
         balances[msg.sender] -= _value;
         balances[_to] += _value;
         emit Transfer(
@@ -76,10 +99,17 @@ contract EnergyMarket {
         address _to,
         uint256 _value
     ) public returns (bool success) {
-        if (_to == address(0)) revert("Invalid address");
-        if (_value > balances[_from]) revert("Insufficient balance");
+        if (_to == address(0)) revert EnergyMarket__InvalidAddress(_to);
+        if (_value > balances[_from])
+            revert EnergyMarket__InsufficientBalance({
+                balance: balances[_from],
+                required: _value
+            });
         if (_value > allowed[_from][msg.sender])
-            revert("Insufficient allowance");
+            revert EnergyMarket__InsufficientAllowance({
+                allowance: allowed[_from][msg.sender],
+                required: _value
+            });
         balances[_from] -= _value;
         balances[_to] += _value;
         allowed[_from][msg.sender] -= _value;
@@ -195,9 +225,8 @@ contract EnergyMarket {
     );
 
     // Functions
-    // Round Start
     function roundStart() public {
-        if (msg.sender != DSO) revert("Only DSO can start the round");
+        if (msg.sender != DSO) revert EnergyMarket__NotDSO();
         uint256 stime = block.timestamp;
         etime = stime + 1 hours;
         totalEnergyDemanded = 0;
@@ -205,7 +234,6 @@ contract EnergyMarket {
         emit RoundStart(stime, etime);
     }
 
-    // Register
     function register() public {
         addrIndex[msg.sender] = totalUsers;
         EnergyOwnership memory _energy = EnergyOwnership(
@@ -229,11 +257,11 @@ contract EnergyMarket {
 
     // Inject Energy (Ei)
     function inject(address _owner, uint256 _amount) public {
-        if (msg.sender != DSO) revert("Only DSO can inject energy");
+        if (msg.sender != DSO) revert EnergyMarket__NotDSO();
         if (
             energys[addrIndex[_owner]][0].energyState !=
             uint256(EnergyState.Register)
-        ) revert("Energy is not registered");
+        ) revert EnergyMarket__NotRegistered();
 
         EnergyOwnership memory _energy = EnergyOwnership(
             _owner,
@@ -264,8 +292,12 @@ contract EnergyMarket {
     // Request to sell amount of intent to sell (Si)
     function requestSell(uint256 _amount) public {
         uint256 i = addrIndex[msg.sender];
-        if (energys[i][1].energyAmount < _amount) revert("Not enough energy");
-        if (block.timestamp > etime) revert("Not in round time");
+        if (energys[i][1].energyAmount < _amount)
+            revert EnergyMarket__InsufficientEnergyInjected({
+                energyAmount: energys[i][1].energyAmount,
+                required: _amount
+            });
+        if (block.timestamp > etime) revert EnergyMarket__OutsideRound();
 
         EnergyOwnership memory _energy = EnergyOwnership(
             msg.sender,
@@ -286,10 +318,13 @@ contract EnergyMarket {
 
     // Request to buy amount of intent to buy (Di)
     function requestBuy(uint256 _amount) public {
-        if (_amount == 0) revert("Amount cannot be zero");
+        if (_amount == 0) revert EnergyMarket__ZeroEnergyAmount();
         if (_amount * MAX_ENERGYPRICE > balanceOf(msg.sender))
-            revert("Not enough tokens");
-        if (block.timestamp > etime) revert("Round is over");
+            revert EnergyMarket__InsufficientBalance({
+                balance: balanceOf(msg.sender),
+                required: _amount * MAX_ENERGYPRICE
+            });
+        if (block.timestamp > etime) revert EnergyMarket__OutsideRound();
 
         uint256 i = addrIndex[msg.sender];
         EnergyOwnership memory _energy = EnergyOwnership(
@@ -442,7 +477,7 @@ contract EnergyMarket {
 
     // Trade
     function trade(uint256 _price) public {
-        if (msg.sender != DSO) revert("Only DSO can trade");
+        if (msg.sender != DSO) revert EnergyMarket__NotDSO();
         uint256 price = _price;
 
         for (uint256 i = 0; i < matches.length; i++) {
