@@ -5,7 +5,7 @@ pragma solidity ^0.8.18;
 error EnergyMarket__InsufficientBalance(uint256 balance, uint256 required);
 error EnergyMarket__InsufficientAllowance(uint256 allowance, uint256 required);
 error EnergyMarket__InvalidAddress(address addr);
-error EnergyMarket__Not_DSO();
+error EnergyMarket__NotDSO(address addr);
 error EnergyMarket__NotRegistered();
 error EnergyMarket__InsufficientEnergyInjected(
     uint256 energyAmount,
@@ -100,16 +100,14 @@ contract EnergyMarket {
         uint256 _value
     ) public returns (bool success) {
         if (_to == address(0)) revert EnergyMarket__InvalidAddress(_to);
-        uint256 availBalance = s_balances[_from];
-        uint256 availAllowance = s_allowed[_from][msg.sender];
-        if (_value > availBalance)
+        if (_value > s_balances[_from])
             revert EnergyMarket__InsufficientBalance({
-                balance: availBalance,
+                balance: s_balances[_from],
                 required: _value
             });
-        if (_value > availAllowance)
+        if (_value > s_allowed[_from][msg.sender])
             revert EnergyMarket__InsufficientAllowance({
-                allowance: availAllowance,
+                allowance: s_allowed[_from][msg.sender],
                 required: _value
             });
         s_balances[_from] -= _value;
@@ -168,7 +166,7 @@ contract EnergyMarket {
     uint256 public constant MAX_ENERGYPRICE = 500 * (10 ** uint256(DECIMALS));
 
     // Enum
-    enum energyState {
+    enum EnergyState {
         Register, // 0
         Injected, // 1
         Board, // 2
@@ -199,7 +197,7 @@ contract EnergyMarket {
     }
 
     // Mappings
-    mapping(address => uint256) internal s_addrIndex;
+    mapping(address => uint256) public s_addrIndex;
 
     // Arrays
     EnergyOwnership[][] internal s_energys;
@@ -227,12 +225,12 @@ contract EnergyMarket {
     );
 
     // Functions
-    function geti_DSO() public view returns (address) {
+    function getDSO() public view returns (address) {
         return i_DSO;
     }
 
     function roundStart() public {
-        if (msg.sender != i_DSO) revert EnergyMarket__Not_DSO();
+        if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);
         uint256 startTime = block.timestamp;
         s_endTime = startTime + 1 hours;
         s_totalEnergyDemanded = 0;
@@ -241,12 +239,11 @@ contract EnergyMarket {
     }
 
     function register() public {
-        uint256 userCount = s_totalUsers;
-        s_addrIndex[msg.sender] = userCount;
+        s_addrIndex[msg.sender] = s_totalUsers;
         EnergyOwnership memory _energy = EnergyOwnership(
             msg.sender,
             0,
-            uint256(energyState.Register),
+            uint256(EnergyState.Register),
             block.timestamp
         );
         s_energy.push(_energy);
@@ -255,23 +252,24 @@ contract EnergyMarket {
         emit EnergyCheck(
             msg.sender,
             0,
-            uint256(energyState.Register),
+            uint256(EnergyState.Register),
             _energy.timestamp
         );
         s_totalUsers++;
+        delete s_energy;
     }
 
     // Inject Energy (Ei)
     function inject(address _owner, uint256 _amount) public {
-        if (msg.sender != i_DSO) revert EnergyMarket__Not_DSO();
+        if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);
         uint256 i = s_addrIndex[_owner];
-        if (s_energys[i][0].energyState != uint256(energyState.Register))
+        if (s_energys[i][0].energyState != uint256(EnergyState.Register))
             revert EnergyMarket__NotRegistered();
 
         EnergyOwnership memory _energy = EnergyOwnership(
             _owner,
             _amount,
-            uint256(energyState.Injected),
+            uint256(EnergyState.Injected),
             block.timestamp
         );
         s_energys[i].push(_energy);
@@ -280,7 +278,7 @@ contract EnergyMarket {
         emit EnergyCheck(
             _owner,
             _amount,
-            uint256(energyState.Injected),
+            uint256(EnergyState.Injected),
             _energy.timestamp
         );
 
@@ -307,7 +305,7 @@ contract EnergyMarket {
         EnergyOwnership memory _energy = EnergyOwnership(
             msg.sender,
             _amount,
-            uint256(energyState.Board),
+            uint256(EnergyState.Board),
             block.timestamp
         );
         s_energys[i].push(_energy);
@@ -337,7 +335,7 @@ contract EnergyMarket {
         EnergyOwnership memory _energy = EnergyOwnership(
             msg.sender,
             _amount,
-            uint256(energyState.Board),
+            uint256(EnergyState.Board),
             block.timestamp
         );
         s_energys[i].push(_energy);
@@ -389,7 +387,7 @@ contract EnergyMarket {
                     100;
                 s_energys[addr_i][1].timestamp = block.timestamp;
                 s_energys[addr_i][j].energyAmount = (energyAmount * q) / 100;
-                s_energys[addr_i][j].energyState = uint256(energyState.Match);
+                s_energys[addr_i][j].energyState = uint256(EnergyState.Match);
                 s_energys[addr_i][j].timestamp = block.timestamp;
             }
         } else if (totalSupplyOfEnergy < totalDemandOfEnergy) {
@@ -403,7 +401,7 @@ contract EnergyMarket {
                     (_demand.energyDemanded * q) /
                     100;
                 s_energys[addr_i][1].energyAmount = _demand.energyDemanded;
-                s_energys[addr_i][1].energyState = uint256(energyState.Match);
+                s_energys[addr_i][1].energyState = uint256(EnergyState.Match);
                 s_energys[addr_i][1].timestamp = block.timestamp;
             }
         }
@@ -494,7 +492,7 @@ contract EnergyMarket {
 
     // Trade
     function trade(uint256 _price) public {
-        if (msg.sender != i_DSO) revert EnergyMarket__Not_DSO();
+        if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);
         uint256 price = _price;
 
         uint256 matchesLen = s_matches.length;
@@ -507,7 +505,7 @@ contract EnergyMarket {
                 _match.energyAmount * price
             );
             s_energys[index][1].energyAmount = _match.energyAmount;
-            s_energys[index][1].energyState = uint256(energyState.Purchased);
+            s_energys[index][1].energyState = uint256(EnergyState.Purchased);
             s_energys[index][1].timestamp = block.timestamp;
         }
 

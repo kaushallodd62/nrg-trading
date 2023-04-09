@@ -182,8 +182,8 @@ describe("EnergyMarket", function () {
         });
         it("should set totalEnergySupplied and totalEnergyDemanded to 0", async function () {
             await energyMarket.roundStart();
-            expect(await energyMarket.totalEnergySupplied()).to.equal(0);
-            expect(await energyMarket.totalEnergyDemanded()).to.equal(0);
+            expect(await energyMarket.s_totalEnergySupplied()).to.equal(0);
+            expect(await energyMarket.s_totalEnergyDemanded()).to.equal(0);
         });
     });
 
@@ -201,16 +201,16 @@ describe("EnergyMarket", function () {
                 .register();
         });
         it("should map address of user to index based on totalUsers", async function () {
-            expect(await energyMarket.addrIndex(prosumer1)).to.equal(0);
-            expect(await energyMarket.addrIndex(prosumer2)).to.equal(1);
+            expect(await energyMarket.s_addrIndex(prosumer1)).to.equal(0);
+            expect(await energyMarket.s_addrIndex(prosumer2)).to.equal(1);
         });
         it("should push energy ownership structure to energys array", async function () {
             expect(
-                await energyMarket.energys(0, 0).addrOwner.toString()
+                await energyMarket.s_energys(0, 0).addrOwner.toString()
             ).to.equal(prosumer1);
-            expect(await energyMarket.energys(0, 0).energyAmount).to.equal(0);
-            expect(await energyMarket.energys(0, 0).energyState).to.equal(0);
-            except(await energyMarket.energys(0, 0).timestamp).to.equal(
+            expect(await energyMarket.s_energys(0, 0).energyAmount).to.equal(0);
+            expect(await energyMarket.s_energys(0, 0).energyState).to.equal(0);
+            except(await energyMarket.s_energys(0, 0).timestamp).to.equal(
                 ethers.provider.getBlock("latest").timestamp
             );
         });
