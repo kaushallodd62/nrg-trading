@@ -6,7 +6,6 @@ error EnergyMarket__InsufficientBalance(uint256 balance, uint256 required);
 error EnergyMarket__InsufficientAllowance(uint256 allowance, uint256 required);
 error EnergyMarket__InvalidAddress(address addr);
 error EnergyMarket__NotDSO(address addr);
-error EnergyMarket__NotRegistered();
 error EnergyMarket__InsufficientEnergyInjected(
     uint256 energyAmount,
     uint256 required
@@ -26,14 +25,14 @@ contract EnergyMarket {
     string public constant SYMBOL = "NRG";
     string public constant STANDARD = "NRG Token v1.0";
     uint8 public constant DECIMALS = 18;
-    uint256 internal constant INITIAL_SUPPLY =
+    uint256 private constant INITIAL_SUPPLY =
         10000000 * (10 ** uint256(DECIMALS));
-    uint256 internal s_totalSupply;
-    address internal immutable i_DSO;
+    uint256 private s_totalSupply;
+    address private immutable i_DSO;
 
     // Mappings
-    mapping(address => uint256) internal s_balances;
-    mapping(address => mapping(address => uint256)) internal s_allowed;
+    mapping(address => uint256) private s_balances;
+    mapping(address => mapping(address => uint256)) private s_allowed;
 
     // Events
     event Transfer(
@@ -157,12 +156,12 @@ contract EnergyMarket {
     }
 
     // State Variables
-    uint256 public s_totalEnergySupplied;
-    uint256 public s_totalEnergyDemanded;
-    uint256 public s_totalUsers;
-    uint256 internal s_endTime;
-    uint256 internal s_supplyIndex;
-    uint256 internal s_demandIndex;
+    uint256 private s_totalEnergySupplied;
+    uint256 private s_totalEnergyDemanded;
+    uint256 private s_totalUsers;
+    uint256 private s_endTime;
+    uint256 private s_supplyIndex;
+    uint256 private s_demandIndex;
     uint256 public constant MAX_ENERGYPRICE = 500 * (10 ** uint256(DECIMALS));
 
     // Enum
@@ -197,14 +196,14 @@ contract EnergyMarket {
     }
 
     // Mappings
-    mapping(address => uint256) public s_addrIndex;
+    mapping(address => uint256) private s_addrIndex;
 
     // Arrays
-    EnergyOwnership[][] internal s_energys;
-    EnergyOwnership[] internal s_energy;
-    Supply[] public s_supplies;
-    Demand[] public s_demands;
-    EnergyMatched[] public s_matches;
+    EnergyOwnership[][] private s_energys;
+    EnergyOwnership[] private s_energy;
+    Supply[] private s_supplies;
+    Demand[] private s_demands;
+    EnergyMatched[] private s_matches;
 
     // Events
     event Gen(uint256 gen);
@@ -225,19 +224,71 @@ contract EnergyMarket {
     );
 
     // Functions
+
+    // Getter functions
     function getDSO() public view returns (address) {
         return i_DSO;
     }
 
-    function roundStart() public {
-        if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);
-        uint256 startTime = block.timestamp;
-        s_endTime = startTime + 1 hours;
-        s_totalEnergyDemanded = 0;
-        s_totalEnergySupplied = 0;
-        emit RoundStart(startTime, s_endTime);
+    function getTotalEnergySupplied() public view returns (uint256) {
+        return s_totalEnergySupplied;
     }
 
+    function getTotalEnergyDemanded() public view returns (uint256) {
+        return s_totalEnergyDemanded;
+    }
+
+    function getTotalUsers() public view returns (uint256) {
+        return s_totalUsers;
+    }
+
+    function getEndTime() public view returns (uint256) {
+        return s_endTime;
+    }
+
+    function getIndexFromAddress(address _addr) public view returns (uint256) {
+        return s_addrIndex[_addr];
+    }
+
+    // function getEnergyOwnershipInfo(
+    //     address _addr
+    // ) public view returns (EnergyOwnership[] memory, uint256) {
+    //     return (
+    //         s_energys[s_addrIndex[_addr]],
+    //         s_energys[s_addrIndex[_addr]].length
+    //     );
+    // }
+
+    function getEnergyOwnershipInfo(
+        address _addr,
+        uint256 _index
+    ) public view returns (EnergyOwnership memory) {
+        return s_energys[s_addrIndex[_addr]][_index];
+    }
+
+    function getSupplyIndex() public view returns (uint256) {
+        return s_supplyIndex;
+    }
+
+    function getSupplyInfo(uint256 _index) public view returns (Supply memory) {
+        return s_supplies[_index];
+    }
+
+    function getDemandIndex() public view returns (uint256) {
+        return s_demandIndex;
+    }
+
+    function getDemandInfo(uint256 _index) public view returns (Demand memory) {
+        return s_demands[_index];
+    }
+
+    function getMatchInfo(
+        uint256 _index
+    ) public view returns (EnergyMatched memory) {
+        return s_matches[_index];
+    }
+
+    // Register function
     function register() public {
         s_addrIndex[msg.sender] = s_totalUsers;
         EnergyOwnership memory _energy = EnergyOwnership(
@@ -263,8 +314,6 @@ contract EnergyMarket {
     function inject(address _owner, uint256 _amount) public {
         if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);
         uint256 i = s_addrIndex[_owner];
-        if (s_energys[i][0].energyState != uint256(EnergyState.Register))
-            revert EnergyMarket__NotRegistered();
 
         EnergyOwnership memory _energy = EnergyOwnership(
             _owner,
@@ -289,6 +338,16 @@ contract EnergyMarket {
             s_energys[i].pop();
         }
         emit Gen(0);
+    }
+
+    // Start Round
+    function roundStart() public {
+        if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);
+        uint256 startTime = block.timestamp;
+        s_endTime = startTime + 1 hours;
+        s_totalEnergyDemanded = 0;
+        s_totalEnergySupplied = 0;
+        emit RoundStart(startTime, s_endTime);
     }
 
     // Request to sell amount of intent to sell (Si)

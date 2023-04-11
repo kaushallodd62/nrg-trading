@@ -1,10 +1,11 @@
 const { deployments, getNamedAccounts, ethers } = require("hardhat");
+const { time } = require("@nomicfoundation/harhdat-network-helpers");
 const { expect } = require("chai");
 
 describe("EnergyMarket", function () {
     // Deploy the EnergyMarket contract before each test
     let energyMarket, deployer;
-    beforeEach(async function () {
+    this.beforeEach(async function () {
         await deployments.fixture();
         deployer = (await getNamedAccounts()).DSO;
         energyMarket = await ethers.getContract("EnergyMarket", deployer);
@@ -140,7 +141,7 @@ describe("EnergyMarket", function () {
     // Test the decreaseAllowance function
     describe("decreaseAllowance", function () {
         let prosumer1;
-        beforeEach(async function () {
+        this.beforeEach(async function () {
             prosumer1 = (await getNamedAccounts()).prosumer1;
             await energyMarket.transfer(prosumer1, 1);
             await energyMarket
@@ -160,10 +161,35 @@ describe("EnergyMarket", function () {
         it("should set allowance to 0 if value is greater than allowance", async function () {
             await energyMarket
                 .connect(await ethers.getSigner(prosumer1))
-                .decreaseAllowance(deployer, 2);
+                .decreaseAllowance(deployer, 3);
             expect(await energyMarket.allowance(prosumer1, deployer)).to.equal(
                 0
             );
+        });
+    });
+
+    // Test Getter functions
+    describe("getters", function () {
+        it("should return the address of DSO", async function () {
+            expect(await energyMarket.getDSO()).to.equal(deployer);
+        });
+        it("should return totalEnergySupplied", async function () {
+            expect(await energyMarket.getTotalEnergySupplied()).to.equal(0);
+        });
+        it("should return totalEnergyDemanded", async function () {
+            expect(await energyMarket.getTotalEnergyDemanded()).to.equal(0);
+        });
+        it("should return totalUsers", async function () {
+            expect(await energyMarket.getTotalUsers()).to.equal(0);
+        });
+        it("should return endTime of round", async function () {
+            expect(await energyMarket.getEndTime()).to.equal(0);
+        });
+        it("should return the supplyIndex", async function () {
+            expect(await energyMarket.getSupplyIndex()).to.equal(0);
+        });
+        it("should return the demandIndex", async function () {
+            expect(await energyMarket.getDemandIndex()).to.equal(0);
         });
     });
 
@@ -182,8 +208,8 @@ describe("EnergyMarket", function () {
         });
         it("should set totalEnergySupplied and totalEnergyDemanded to 0", async function () {
             await energyMarket.roundStart();
-            expect(await energyMarket.s_totalEnergySupplied()).to.equal(0);
-            expect(await energyMarket.s_totalEnergyDemanded()).to.equal(0);
+            expect(await energyMarket.getTotalEnergySupplied()).to.equal(0);
+            expect(await energyMarket.getTotalEnergyDemanded()).to.equal(0);
         });
     });
 
@@ -201,18 +227,90 @@ describe("EnergyMarket", function () {
                 .register();
         });
         it("should map address of user to index based on totalUsers", async function () {
-            expect(await energyMarket.s_addrIndex(prosumer1)).to.equal(0);
-            expect(await energyMarket.s_addrIndex(prosumer2)).to.equal(1);
+            expect(await energyMarket.getIndexFromAddress(prosumer1)).to.equal(
+                0
+            );
+            expect(await energyMarket.getIndexFromAddress(prosumer2)).to.equal(
+                1
+            );
         });
         it("should push energy ownership structure to energys array", async function () {
-            expect(
-                await energyMarket.s_energys(0, 0).addrOwner.toString()
-            ).to.equal(prosumer1);
-            expect(await energyMarket.s_energys(0, 0).energyAmount).to.equal(0);
-            expect(await energyMarket.s_energys(0, 0).energyState).to.equal(0);
-            except(await energyMarket.s_energys(0, 0).timestamp).to.equal(
-                ethers.provider.getBlock("latest").timestamp
+            await energyMarket
+                .getEnergyOwnershipInfo(prosumer1, 0)
+                .then((res) => {
+                    expect(res.addrOwner).to.equal(prosumer1);
+                    expect(Number(res.energyAmount)).to.equal(0);
+                    expect(Number(res.energyState)).to.equal(0);
+                    console.log(res.timestamp.toString(), time.latest());
+                    expect(res.timestamp.toString()).to.equal(
+                        ethers.provider.getBlock("latest").timestamp
+                    );
+                });
+        });
+    });
+
+    // Test inject function
+    describe("inject", function () {
+        let prosumer1;
+        this.beforeEach(async function () {
+            prosumer1 = (await getNamedAccounts()).prosumer1;
+            await energyMarket
+                .connect(await ethers.getSigner(prosumer1))
+                .register();
+        });
+        it("should revert if not called by DSO", async function () {
+            await expect(
+                energyMarket
+                    .connect(await ethers.getSigner(prosumer1))
+                    .inject(prosumer1, 1)
+            ).to.be.revertedWithCustomError(
+                energyMarket,
+                "EnergyMarket__NotDSO"
             );
+        });
+        it("should create EnergyOwnership structure and push to energys array", async function () {
+            await energyMarket.inject(prosumer1, 1);
+            expect(
+                await energyMarket
+                    .getEnergyOwnershipInfo(prosumer1, 1)
+                    .addrOwner.toString()
+            ).to.equal(prosumer1);
+            expect(
+                await energyMarket.getEnergyOwnershipInfo(prosumer1, 1)
+                    .energyAmount
+            ).to.equal(1);
+            expect(
+                await energyMarket.getEnergyOwnershipInfo(prosumer1, 1)
+                    .energyState
+            ).to.equal(0);
+            except(
+                await energyMarket.getEnergyOwnershipInfo(prosumer1, 1)
+                    .timestamp
+            ).to.equal(ethers.provider.getBlock("latest").timestamp);
+        });
+        it("Should perform aggregate calculations", async function () {
+            await energyMarket.inject(prosumer1, 1);
+            await energyMarket.inject(prosumer1, 2);
+            expect(
+                await energyMarket
+                    .getEnergyOwnershipInfo(prosumer1, 1)
+                    .addrOwner.toString()
+            ).to.equal(prosumer1);
+            expect(
+                await energyMarket.getEnergyOwnershipInfo(prosumer1, 1)
+                    .energyAmount
+            ).to.equal(3);
+            expect(
+                await energyMarket.getEnergyOwnershipInfo(prosumer1, 1)
+                    .energyState
+            ).to.equal(0);
+            except(
+                await energyMarket.getEnergyOwnershipInfo(prosumer1, 1)
+                    .timestamp
+            ).to.equal(ethers.provider.getBlock("latest").timestamp);
+            expect(
+                await energyMarket.getEnergyOwnershipInfo(prosumer1)[1]
+            ).to.equal(2);
         });
     });
 });
