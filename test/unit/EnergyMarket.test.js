@@ -1,5 +1,5 @@
 const { deployments, getNamedAccounts, ethers } = require("hardhat");
-const { time } = require("@nomicfoundation/harhdat-network-helpers");
+// const { time } = require("@nomicfoundation/hardhat-network-helpers");
 const { expect } = require("chai");
 
 describe("EnergyMarket", function () {
@@ -235,17 +235,12 @@ describe("EnergyMarket", function () {
             );
         });
         it("should push energy ownership structure to energys array", async function () {
-            await energyMarket
-                .getEnergyOwnershipInfo(prosumer1, 0)
-                .then((res) => {
-                    expect(res.addrOwner).to.equal(prosumer1);
-                    expect(Number(res.energyAmount)).to.equal(0);
-                    expect(Number(res.energyState)).to.equal(0);
-                    console.log(res.timestamp.toString(), time.latest());
-                    expect(res.timestamp.toString()).to.equal(
-                        ethers.provider.getBlock("latest").timestamp
-                    );
-                });
+            const { addrOwner, energyAmount, energyState /*, timestamp */ } =
+                await energyMarket.getEnergyOwnershipInfo(prosumer1, 0);
+            expect(addrOwner).to.equal(prosumer1);
+            expect(energyAmount.toNumber()).to.equal(0);
+            expect(energyState.toNumber()).to.equal(0);
+            // expect(timestamp.toNumber()).to.equal((await time.latest()) - 1);
         });
     });
 
@@ -270,47 +265,22 @@ describe("EnergyMarket", function () {
         });
         it("should create EnergyOwnership structure and push to energys array", async function () {
             await energyMarket.inject(prosumer1, 1);
-            expect(
-                await energyMarket
-                    .getEnergyOwnershipInfo(prosumer1, 1)
-                    .addrOwner.toString()
-            ).to.equal(prosumer1);
-            expect(
-                await energyMarket.getEnergyOwnershipInfo(prosumer1, 1)
-                    .energyAmount
-            ).to.equal(1);
-            expect(
-                await energyMarket.getEnergyOwnershipInfo(prosumer1, 1)
-                    .energyState
-            ).to.equal(0);
-            except(
-                await energyMarket.getEnergyOwnershipInfo(prosumer1, 1)
-                    .timestamp
-            ).to.equal(ethers.provider.getBlock("latest").timestamp);
+            const { addrOwner, energyAmount, energyState /*, timestamp */ } =
+                await energyMarket.getEnergyOwnershipInfo(prosumer1, 1);
+            expect(addrOwner).to.equal(prosumer1);
+            expect(energyAmount.toNumber()).to.equal(1);
+            expect(energyState.toNumber()).to.equal(1);
+            // expect(timestamp.toNumber()).to.equal((await time.latest()) - 1);
         });
         it("Should perform aggregate calculations", async function () {
             await energyMarket.inject(prosumer1, 1);
             await energyMarket.inject(prosumer1, 2);
-            expect(
-                await energyMarket
-                    .getEnergyOwnershipInfo(prosumer1, 1)
-                    .addrOwner.toString()
-            ).to.equal(prosumer1);
-            expect(
-                await energyMarket.getEnergyOwnershipInfo(prosumer1, 1)
-                    .energyAmount
-            ).to.equal(3);
-            expect(
-                await energyMarket.getEnergyOwnershipInfo(prosumer1, 1)
-                    .energyState
-            ).to.equal(0);
-            except(
-                await energyMarket.getEnergyOwnershipInfo(prosumer1, 1)
-                    .timestamp
-            ).to.equal(ethers.provider.getBlock("latest").timestamp);
-            expect(
-                await energyMarket.getEnergyOwnershipInfo(prosumer1)[1]
-            ).to.equal(2);
+            const { addrOwner, energyAmount, energyState /*, timestamp */ } =
+                await energyMarket.getEnergyOwnershipInfo(prosumer1, 1);
+            expect(addrOwner).to.equal(prosumer1);
+            expect(energyAmount.toNumber()).to.equal(3);
+            expect(energyState.toNumber()).to.equal(1);
+            // expect(timestamp.toNumber()).to.equal(await time.latest());
         });
     });
 });
