@@ -21,6 +21,7 @@ module.exports = {
         localhost: {
             url: HARDHAT_LOCAL_RPC_URL,
             live: false,
+            chainId: 31337,
             saveDeployments: true,
             tags: ["local"],
         },
