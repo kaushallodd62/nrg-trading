@@ -363,42 +363,20 @@ describe("EnergyMarket", function () {
         });
     });
 
-    // Test roundStart function
-    describe("roundStart", function () {
-        it("reverts if not called by DSO", async function () {
-            const prosumer1 = (await getNamedAccounts()).prosumer1;
-            await expect(
-                energyMarket
-                    .connect(await ethers.getSigner(prosumer1))
-                    .roundStart()
-            )
-                .to.be.revertedWithCustomError(
-                    energyMarket,
-                    "EnergyMarket__NotDSO"
-                )
-                .withArgs(prosumer1);
-        });
-        it("should set totalEnergySupplied and totalEnergyDemanded to 0", async function () {
-            await energyMarket.roundStart();
-            expect(await energyMarket.getTotalEnergySupplied()).to.equal(0);
-            expect(await energyMarket.getTotalEnergyDemanded()).to.equal(0);
-        });
-    });
-
     // Test register function
     describe("register", function () {
         let prosumer1, prosumer2;
         this.beforeEach(async function () {
             prosumer1 = (await getNamedAccounts()).prosumer1;
             prosumer2 = (await getNamedAccounts()).prosumer2;
+        });
+        it("should map address of user to index based on totalUsers", async function () {
             await energyMarket
                 .connect(await ethers.getSigner(prosumer1))
                 .register();
             await energyMarket
                 .connect(await ethers.getSigner(prosumer2))
                 .register();
-        });
-        it("should map address of user to index based on totalUsers", async function () {
             expect(await energyMarket.getIndexFromAddress(prosumer1)).to.equal(
                 0
             );
@@ -407,13 +385,28 @@ describe("EnergyMarket", function () {
             );
         });
         it("should push energy ownership structure to energys array", async function () {
+            await energyMarket
+                .connect(await ethers.getSigner(prosumer1))
+                .register();
+            await energyMarket
+                .connect(await ethers.getSigner(prosumer2))
+                .register();
             const { addrOwner, energyAmount, energyState /*, timestamp */ } =
                 await energyMarket.getEnergyOwnershipInfo(prosumer1, 0);
             expect(addrOwner).to.equal(prosumer1);
             expect(energyAmount.toNumber()).to.equal(0);
             expect(energyState.toNumber()).to.equal(0);
-            // expect(timestamp.toNumber()).to.equal((await time.latest()) - 1);
+            // expect(timestamp.toNumber()).to.equal((await time.latest()));
         });
+        /*it("emits EnergyCheck event", async function () {
+            await expect(
+                energyMarket
+                    .connect(await ethers.getSigner(prosumer1))
+                    .register()
+            )
+                .to.emit(energyMarket, "EnergyCheck")
+                .withArgs(prosumer1, 0, 0, await time.latest());
+        });*/
     });
 
     // Test inject function
@@ -444,7 +437,7 @@ describe("EnergyMarket", function () {
             expect(addrOwner).to.equal(prosumer1);
             expect(energyAmount.toNumber()).to.equal(1);
             expect(energyState.toNumber()).to.equal(1);
-            // expect(timestamp.toNumber()).to.equal((await time.latest()) - 1);
+            // expect(timestamp.toNumber()).to.equal((await time.latest()));
         });
         it("should perform aggregate calculations", async function () {
             await energyMarket.inject(prosumer1, 1);
@@ -455,6 +448,41 @@ describe("EnergyMarket", function () {
             expect(energyAmount.toNumber()).to.equal(3);
             expect(energyState.toNumber()).to.equal(1);
             // expect(timestamp.toNumber()).to.equal(await time.latest());
+        });
+        /*it("should emit EnergyCheck event", async function () {
+            await expect(energyMarket.inject(prosumer1, 1))
+                .to.emit(energyMarket, "EnergyCheck")
+                .withArgs(prosumer1, 1, 1, await time.latest());
+        });*/
+    });
+
+    // Test roundStart function
+    describe("roundStart", function () {
+        it("reverts if not called by DSO", async function () {
+            const prosumer1 = (await getNamedAccounts()).prosumer1;
+            await expect(
+                energyMarket
+                    .connect(await ethers.getSigner(prosumer1))
+                    .roundStart()
+            )
+                .to.be.revertedWithCustomError(
+                    energyMarket,
+                    "EnergyMarket__NotDSO"
+                )
+                .withArgs(prosumer1);
+        });
+        it("should set totalEnergySupplied and totalEnergyDemanded to 0", async function () {
+            await energyMarket.roundStart();
+            expect(await energyMarket.getTotalEnergySupplied()).to.equal(0);
+            expect(await energyMarket.getTotalEnergyDemanded()).to.equal(0);
+        });
+        it("emits RoundStart event", async function () {
+            await expect(await energyMarket.roundStart())
+                .to.emit(energyMarket, "RoundStart")
+                .withArgs(
+                    await energyMarket.getStartTime(),
+                    await energyMarket.getEndTime()
+                );
         });
     });
 
@@ -491,10 +519,10 @@ describe("EnergyMarket", function () {
                 "EnergyMarket__OutsideRound"
             );
             /*.withArgs(
-                    await time.latest(),
-                    await energyMarket.getStartTime(),
-                    await energyMarket.getEndTime()
-                );*/
+                await time.latest(),
+                await energyMarket.getStartTime(),
+                await energyMarket.getEndTime()
+            );*/
         });
         it("reverts if request made after round ends", async function () {
             await energyMarket.roundStart();
@@ -508,10 +536,10 @@ describe("EnergyMarket", function () {
                 "EnergyMarket__OutsideRound"
             );
             /*.withArgs(
-                    await time.latest(),
-                    await energyMarket.getStartTime(),
-                    await energyMarket.getEndTime()
-                );*/
+                await time.latest(),
+                await energyMarket.getStartTime(),
+                await energyMarket.getEndTime()
+            );*/
         });
         it("should create EnergyOwnership structure and push to energys array", async function () {
             await energyMarket.roundStart();
@@ -523,7 +551,7 @@ describe("EnergyMarket", function () {
             expect(addrOwner).to.equal(prosumer1);
             expect(energyAmount.toNumber()).to.equal(80);
             expect(energyState.toNumber()).to.equal(2);
-            // expect(timestamp.toNumber()).to.equal((await time.latest()) - 1);
+            // expect(timestamp.toNumber()).to.equal((await time.latest()));
         });
         it("should update the amount of injected energy", async function () {
             await energyMarket.roundStart();
@@ -535,7 +563,7 @@ describe("EnergyMarket", function () {
             expect(addrOwner).to.equal(prosumer1);
             expect(energyAmount.toNumber()).to.equal(20);
             expect(energyState.toNumber()).to.equal(1);
-            // expect(timestamp.toNumber()).to.equal((await time.latest()) - 1);
+            // expect(timestamp.toNumber()).to.equal((await time.latest()));
         });
         it("should create Supply structure and push to supplies array", async function () {
             await energyMarket.roundStart();
@@ -560,6 +588,16 @@ describe("EnergyMarket", function () {
                 .connect(await ethers.getSigner(prosumer1))
                 .requestSell(80);
             expect(await energyMarket.getTotalEnergySupplied()).to.equal(80);
+        });
+        it("emits SellRequestCheck event", async function () {
+            await energyMarket.roundStart();
+            await expect(
+                energyMarket
+                    .connect(await ethers.getSigner(prosumer1))
+                    .requestSell(80)
+            )
+                .to.emit(energyMarket, "SellRequestCheck")
+                .withArgs(prosumer1, 80);
         });
     });
 
@@ -606,10 +644,10 @@ describe("EnergyMarket", function () {
                 "EnergyMarket__OutsideRound"
             );
             /*.withArgs(
-                    await time.latest(),
-                    await energyMarket.getStartTime(),
-                    await energyMarket.getEndTime()
-                );*/
+                await time.latest(),
+                await energyMarket.getStartTime(),
+                await energyMarket.getEndTime()
+            );*/
         });
         it("reverts if request made after round ends", async function () {
             await energyMarket.roundStart();
@@ -623,10 +661,10 @@ describe("EnergyMarket", function () {
                 "EnergyMarket__OutsideRound"
             );
             /*.withArgs(
-                    await time.latest(),
-                    await energyMarket.getStartTime(),
-                    await energyMarket.getEndTime()
-                );*/
+                await time.latest(),
+                await energyMarket.getStartTime(),
+                await energyMarket.getEndTime()
+            );*/
         });
         it("should create EnergyOwnership structure and push to energys array", async function () {
             await energyMarket.transfer(
@@ -642,7 +680,7 @@ describe("EnergyMarket", function () {
             expect(addrOwner).to.equal(consumer1);
             expect(energyAmount.toNumber()).to.equal(80);
             expect(energyState.toNumber()).to.equal(2);
-            // expect(timestamp.toNumber()).to.equal((await time.latest()) - 1);
+            // expect(timestamp.toNumber()).to.equal((await time.latest()));
         });
         it("should create Demand structure and push to demands array", async function () {
             await energyMarket.transfer(
@@ -692,6 +730,20 @@ describe("EnergyMarket", function () {
             expect(await energyMarket.allowance(consumer1, deployer)).to.equal(
                 80 * (await energyMarket.MAX_ENERGYPRICE()).toNumber()
             );
+        });
+        it("emits BuyRequestCheck event", async function () {
+            await energyMarket.transfer(
+                consumer1,
+                ethers.utils.parseEther("1")
+            );
+            await energyMarket.roundStart();
+            await expect(
+                energyMarket
+                    .connect(await ethers.getSigner(consumer1))
+                    .requestBuy(80)
+            )
+                .to.emit(energyMarket, "BuyRequestCheck")
+                .withArgs(consumer1, 80);
         });
     });
 
