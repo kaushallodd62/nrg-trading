@@ -594,4 +594,8 @@ contract EnergyMarket {
         delete s_matches;
         emit Gen(0);
     }
+
+    receive() external payable {}
+
+    fallback() external payable {}
 }
