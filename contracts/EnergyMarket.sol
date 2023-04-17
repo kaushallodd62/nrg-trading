@@ -10,7 +10,11 @@ error EnergyMarket__InsufficientEnergyInjected(
     uint256 energyAmount,
     uint256 required
 );
-error EnergyMarket__OutsideRound();
+error EnergyMarket__OutsideRound(
+    uint256 currentTime,
+    uint256 startTime,
+    uint256 endTime
+);
 error EnergyMarket__ZeroEnergyAmount();
 
 /**
@@ -35,13 +39,7 @@ contract EnergyMarket {
     mapping(address => mapping(address => uint256)) private s_allowed;
 
     // Events
-    event Transfer(
-        address indexed _from,
-        address indexed _to,
-        uint256 _value,
-        uint256 balanceOfSender,
-        uint256 balanceOfReciever
-    );
+    event Transfer(address indexed _from, address indexed _to, uint256 _value);
     event Approval(
         address indexed _owner,
         address indexed _spender,
@@ -53,13 +51,7 @@ contract EnergyMarket {
         i_DSO = msg.sender;
         s_totalSupply = INITIAL_SUPPLY;
         s_balances[msg.sender] = INITIAL_SUPPLY;
-        emit Transfer(
-            address(0),
-            msg.sender,
-            INITIAL_SUPPLY,
-            s_balances[address(0)],
-            s_balances[msg.sender]
-        );
+        emit Transfer(address(0), msg.sender, INITIAL_SUPPLY);
     }
 
     // Functions
@@ -83,13 +75,7 @@ contract EnergyMarket {
             });
         s_balances[msg.sender] -= _value;
         s_balances[_to] += _value;
-        emit Transfer(
-            msg.sender,
-            _to,
-            _value,
-            s_balances[msg.sender],
-            s_balances[_to]
-        );
+        emit Transfer(msg.sender, _to, _value);
         return true;
     }
 
@@ -112,7 +98,7 @@ contract EnergyMarket {
         s_balances[_from] -= _value;
         s_balances[_to] += _value;
         s_allowed[_from][msg.sender] -= _value;
-        emit Transfer(_from, _to, _value, s_balances[_from], s_balances[_to]);
+        emit Transfer(_from, _to, _value);
         return true;
     }
 
@@ -159,7 +145,7 @@ contract EnergyMarket {
         if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);
         s_totalSupply += _value;
         s_balances[_to] += _value;
-        emit Transfer(address(0), _to, _value, 0, s_balances[_to]);
+        emit Transfer(address(0), _to, _value);
         return true;
     }
 
@@ -172,7 +158,7 @@ contract EnergyMarket {
             });
         s_totalSupply -= _value;
         s_balances[_from] -= _value;
-        emit Transfer(_from, address(0), _value, s_balances[_from], 0);
+        emit Transfer(_from, address(0), _value);
         return true;
     }
 
@@ -180,6 +166,7 @@ contract EnergyMarket {
     uint256 private s_totalEnergySupplied;
     uint256 private s_totalEnergyDemanded;
     uint256 private s_totalUsers;
+    uint256 private s_startTime;
     uint256 private s_endTime;
     uint256 private s_supplyIndex;
     uint256 private s_demandIndex;
@@ -261,6 +248,10 @@ contract EnergyMarket {
 
     function getTotalUsers() public view returns (uint256) {
         return s_totalUsers;
+    }
+
+    function getStartTime() public view returns (uint256) {
+        return s_startTime;
     }
 
     function getEndTime() public view returns (uint256) {
@@ -364,11 +355,11 @@ contract EnergyMarket {
     // Start Round
     function roundStart() public {
         if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);
-        uint256 startTime = block.timestamp;
-        s_endTime = startTime + 1 hours;
+        s_startTime = block.timestamp;
+        s_endTime = s_startTime + 1 hours;
         s_totalEnergyDemanded = 0;
         s_totalEnergySupplied = 0;
-        emit RoundStart(startTime, s_endTime);
+        emit RoundStart(s_startTime, s_endTime);
     }
 
     // Request to sell amount of intent to sell (Si)
@@ -380,7 +371,12 @@ contract EnergyMarket {
                 energyAmount: injectedEnergy,
                 required: _amount
             });
-        if (block.timestamp > s_endTime) revert EnergyMarket__OutsideRound();
+        if (block.timestamp > s_endTime)
+            revert EnergyMarket__OutsideRound(
+                block.timestamp,
+                s_startTime,
+                s_endTime
+            );
 
         EnergyOwnership memory _energy = EnergyOwnership(
             msg.sender,
@@ -402,7 +398,12 @@ contract EnergyMarket {
     // Request to buy amount of intent to buy (Di)
     function requestBuy(uint256 _amount) public {
         if (_amount == 0) revert EnergyMarket__ZeroEnergyAmount();
-        if (block.timestamp > s_endTime) revert EnergyMarket__OutsideRound();
+        if (block.timestamp > s_endTime)
+            revert EnergyMarket__OutsideRound(
+                block.timestamp,
+                s_startTime,
+                s_endTime
+            );
         uint256 balance = balanceOf(msg.sender);
         uint256 maxPrice = _amount * MAX_ENERGYPRICE;
         if (maxPrice > balance)
@@ -433,6 +434,7 @@ contract EnergyMarket {
 
     // Match
     function matching() public {
+        if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);
         // Setting endTime of round to when the matching() function is called
         s_endTime = block.timestamp;
 
