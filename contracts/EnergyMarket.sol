@@ -155,6 +155,27 @@ contract EnergyMarket {
         return true;
     }
 
+    function mint(address _to, uint256 _value) public returns (bool success) {
+        if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);
+        s_totalSupply += _value;
+        s_balances[_to] += _value;
+        emit Transfer(address(0), _to, _value, 0, s_balances[_to]);
+        return true;
+    }
+
+    function burn(address _from, uint256 _value) public returns (bool success) {
+        if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);
+        if (_value > s_balances[_from])
+            revert EnergyMarket__InsufficientBalance({
+                balance: s_balances[_from],
+                required: _value
+            });
+        s_totalSupply -= _value;
+        s_balances[_from] -= _value;
+        emit Transfer(_from, address(0), _value, s_balances[_from], 0);
+        return true;
+    }
+
     // State Variables
     uint256 private s_totalEnergySupplied;
     uint256 private s_totalEnergyDemanded;
@@ -162,7 +183,7 @@ contract EnergyMarket {
     uint256 private s_endTime;
     uint256 private s_supplyIndex;
     uint256 private s_demandIndex;
-    uint256 public constant MAX_ENERGYPRICE = 500 * (10 ** uint256(DECIMALS));
+    uint256 public constant MAX_ENERGYPRICE = 50;
 
     // Enum
     enum EnergyState {
@@ -381,6 +402,7 @@ contract EnergyMarket {
     // Request to buy amount of intent to buy (Di)
     function requestBuy(uint256 _amount) public {
         if (_amount == 0) revert EnergyMarket__ZeroEnergyAmount();
+        if (block.timestamp > s_endTime) revert EnergyMarket__OutsideRound();
         uint256 balance = balanceOf(msg.sender);
         uint256 maxPrice = _amount * MAX_ENERGYPRICE;
         if (maxPrice > balance)
@@ -388,7 +410,6 @@ contract EnergyMarket {
                 balance: balance,
                 required: maxPrice
             });
-        if (block.timestamp > s_endTime) revert EnergyMarket__OutsideRound();
 
         uint256 i = s_addrIndex[msg.sender];
         EnergyOwnership memory _energy = EnergyOwnership(
