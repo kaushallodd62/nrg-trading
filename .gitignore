@@ -8,7 +8,6 @@ Resources
 # Hardhat files
 artifacts
 cache
-gas-report.txt
 coverage.json
 coverage
 deployments
