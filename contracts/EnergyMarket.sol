@@ -162,6 +162,15 @@ contract EnergyMarket {
         return true;
     }
 
+    // Enum
+    enum EnergyState {
+        Register, // 0
+        Injected, // 1
+        Board, // 2
+        Match, // 3
+        Purchased // 4
+    }
+
     // State Variables
     uint256 private s_totalEnergySupplied;
     uint256 private s_totalEnergyDemanded;
@@ -171,15 +180,6 @@ contract EnergyMarket {
     uint256 private s_supplyIndex;
     uint256 private s_demandIndex;
     uint256 public constant MAX_ENERGYPRICE = 50;
-
-    // Enum
-    enum EnergyState {
-        Register, // 0
-        Injected, // 1
-        Board, // 2
-        Match, // 3
-        Purchased // 4
-    }
 
     // Structures
     struct EnergyOwnership {
@@ -387,6 +387,13 @@ contract EnergyMarket {
         s_energys[i].push(_energy);
         s_energys[i][1].energyAmount = injectedEnergy - _amount;
 
+        emit EnergyCheck(
+            msg.sender,
+            _amount,
+            uint256(EnergyState.Board),
+            _energy.timestamp
+        );
+
         Supply memory _supply = Supply(msg.sender, _amount);
         s_supplies.push(_supply);
         s_supplyIndex++;
@@ -420,6 +427,13 @@ contract EnergyMarket {
             block.timestamp
         );
         s_energys[i].push(_energy);
+
+        emit EnergyCheck(
+            msg.sender,
+            _amount,
+            uint256(EnergyState.Board),
+            _energy.timestamp
+        );
 
         Demand memory demand = Demand(msg.sender, _amount);
         s_demands.push(demand);
