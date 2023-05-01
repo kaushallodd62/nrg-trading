@@ -747,7 +747,7 @@ describe("EnergyMarket", function () {
         });
     });
 
-    // Test Match function
+    // Test Matching function
     describe("matching", function () {
         let prosumer1, consumer1;
         this.beforeEach(async function () {
@@ -767,8 +767,8 @@ describe("EnergyMarket", function () {
                 consumer1,
                 ethers.utils.parseEther("1")
             );
-            await energyMarket.roundStart();
             await energyMarket.inject(prosumer1, 80);
+            await energyMarket.roundStart();
             await energyMarket
                 .connect(await ethers.getSigner(prosumer1))
                 .requestSell(80);
@@ -785,6 +785,64 @@ describe("EnergyMarket", function () {
                 energyMarket,
                 "EnergyMarket__NotDSO"
             );
+        });
+    });
+
+    // Test Trade Function
+    describe("trade", function () {
+        let prosumer1, consumer1;
+        let addrProsumer, addrConsumer, energyAmount;
+        this.beforeEach(async function () {
+            prosumer1 = (await getNamedAccounts()).prosumer1;
+            consumer1 = (await getNamedAccounts()).consumer1;
+            await energyMarket
+                .connect(await ethers.getSigner(prosumer1))
+                .register();
+            await energyMarket
+                .connect(await ethers.getSigner(consumer1))
+                .register();
+            await energyMarket.transfer(
+                prosumer1,
+                ethers.utils.parseEther("1")
+            );
+            await energyMarket.transfer(
+                consumer1,
+                ethers.utils.parseEther("1")
+            );
+            await energyMarket.inject(prosumer1, 80);
+            await energyMarket.roundStart();
+            await energyMarket
+                .connect(await ethers.getSigner(prosumer1))
+                .requestSell(80);
+            await energyMarket
+                .connect(await ethers.getSigner(consumer1))
+                .requestBuy(100);
+            await energyMarket.matching();
+            ({ addrProsumer, addrConsumer, energyAmount } =
+                await energyMarket.getMatchInfo(0));
+        });
+        it("reverts if not called by DSO", async function () {
+            await expect(
+                energyMarket
+                    .connect(await ethers.getSigner(consumer1))
+                    .trade(20)
+            ).to.be.revertedWithCustomError(
+                energyMarket,
+                "EnergyMarket__NotDSO"
+            );
+        });
+        it("should transfer funds from consumer to prosumer", async function () {
+            await expect(energyMarket.trade(20))
+                .to.emit(energyMarket, "Transfer")
+                .withArgs(addrConsumer, addrProsumer, 20 * energyAmount);
+        });
+        it("should update energy ownership", async function () {
+            await energyMarket.trade(20);
+            const { addrOwner, energyState, energyAmount /* timestamp */ } =
+                await energyMarket.getEnergyOwnershipInfo(addrConsumer, 1);
+            expect(addrOwner).to.equal(addrConsumer);
+            expect(energyAmount.toNumber()).to.equal(80);
+            expect(energyState.toNumber()).to.equal(4);
         });
     });
 });
