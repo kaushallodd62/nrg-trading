@@ -1,0 +1,1850 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/EnergyMarket.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">contracts/</a> EnergyMarket.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">61.95% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>70/113</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">59.52% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>25/42</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">83.33% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>25/30</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">58.43% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>97/166</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line medium'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498
+499
+500
+501
+502
+503
+504
+505
+506
+507
+508
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523
+524
+525
+526
+527
+528
+529
+530
+531
+532
+533
+534
+535
+536
+537
+538
+539
+540
+541
+542
+543
+544
+545
+546
+547
+548
+549
+550
+551
+552
+553
+554
+555
+556
+557
+558
+559
+560
+561
+562
+563
+564
+565
+566
+567
+568
+569
+570
+571
+572
+573
+574
+575
+576
+577
+578
+579
+580
+581
+582
+583
+584
+585
+586
+587
+588
+589
+590
+591
+592
+593
+594
+595
+596</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">17×</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+&nbsp;
+// Errors
+error EnergyMarket__InsufficientBalance(uint256 balance, uint256 required);
+error EnergyMarket__InsufficientAllowance(uint256 allowance, uint256 required);
+error EnergyMarket__InvalidAddress(address addr);
+error EnergyMarket__NotDSO(address addr);
+error EnergyMarket__InsufficientEnergyInjected(
+    uint256 energyAmount,
+    uint256 required
+);
+error EnergyMarket__OutsideRound();
+error EnergyMarket__ZeroEnergyAmount();
+&nbsp;
+/**
+ * @title A smart contract for Energy Trading
+ * @author Kaushal Lodd
+ * @notice  This contract generates and controls circulation of NRGTokens for facilitating energy trading. It also simulates an energy market where users can register, prosumers can inject energy and supply energy, consumers can demand energy, and the energy market can match the prosumers and consumers based on their energy s_demands and s_supplies.
+ * @dev This contract is deployed by the i_DSO who plays a crucial role in the energy market. The Matching algoritm s_matches the prosumers and consumers automatically.
+ */
+contract EnergyMarket {
+    // State Variables
+    string public constant NAME = "NRG Token";
+    string public constant SYMBOL = "NRG";
+    string public constant STANDARD = "NRG Token v1.0";
+    uint8 public constant DECIMALS = 18;
+    uint256 private constant INITIAL_SUPPLY =
+        10000000 * (10 ** uint256(DECIMALS));
+    uint256 private s_totalSupply;
+    address private immutable i_DSO;
+&nbsp;
+    // Mappings
+    mapping(address =&gt; uint256) private s_balances;
+    mapping(address =&gt; mapping(address =&gt; uint256)) private s_allowed;
+&nbsp;
+    // Events
+    event Transfer(
+        address indexed _from,
+        address indexed _to,
+        uint256 _value,
+        uint256 balanceOfSender,
+        uint256 balanceOfReciever
+    );
+    event Approval(
+        address indexed _owner,
+        address indexed _spender,
+        uint256 _value
+    );
+&nbsp;
+    // Constructor
+    constructor() {
+        i_DSO = msg.sender;
+        s_totalSupply = INITIAL_SUPPLY;
+        s_balances[msg.sender] = INITIAL_SUPPLY;
+        emit Transfer(
+            address(0),
+            msg.sender,
+            INITIAL_SUPPLY,
+            s_balances[address(0)],
+            s_balances[msg.sender]
+        );
+    }
+&nbsp;
+    // Functions
+    function totalSupply() public view returns (uint256) {
+        return s_totalSupply;
+    }
+&nbsp;
+    function balanceOf(address _owner) public view returns (uint256 balance) {
+        return s_balances[_owner];
+    }
+&nbsp;
+    function transfer(
+        address _to,
+        uint256 _value
+    ) public returns (bool success) {
+        if (_to == address(0)) revert EnergyMarket__InvalidAddress(_to);
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (_value &gt; s_balances[msg.sender])
+            revert EnergyMarket__InsufficientBalance({
+                balance: s_balances[msg.sender],
+                required: _value
+            });
+        s_balances[msg.sender] -= _value;
+        s_balances[_to] += _value;
+        emit Transfer(
+            msg.sender,
+            _to,
+            _value,
+            s_balances[msg.sender],
+            s_balances[_to]
+        );
+        return true;
+    }
+&nbsp;
+    function transferFrom(
+        address _from,
+        address _to,
+        uint256 _value
+    ) public returns (bool success) {
+        if (_to == address(0)) revert EnergyMarket__InvalidAddress(_to);
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (_value &gt; s_balances[_from])
+            revert EnergyMarket__InsufficientBalance({
+                balance: s_balances[_from],
+                required: _value
+            });
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (_value &gt; s_allowed[_from][msg.sender])
+            revert EnergyMarket__InsufficientAllowance({
+                allowance: s_allowed[_from][msg.sender],
+                required: _value
+            });
+        s_balances[_from] -= _value;
+        s_balances[_to] += _value;
+        s_allowed[_from][msg.sender] -= _value;
+        emit Transfer(_from, _to, _value, s_balances[_from], s_balances[_to]);
+        return true;
+    }
+&nbsp;
+    function approve(
+        address _spender,
+        uint256 _value
+    ) public returns (bool success) {
+        s_allowed[msg.sender][_spender] = _value;
+        emit Approval(msg.sender, _spender, _value);
+        return true;
+    }
+&nbsp;
+    function allowance(
+        address _owner,
+        address _spender
+    ) public view returns (uint256 remaining) {
+        return s_allowed[_owner][_spender];
+    }
+&nbsp;
+    function increaseAllowance(
+        address _spender,
+        uint256 _addedValue
+    ) public returns (bool success) {
+        s_allowed[msg.sender][_spender] += _addedValue;
+        emit Approval(msg.sender, _spender, s_allowed[msg.sender][_spender]);
+        return true;
+    }
+&nbsp;
+    function decreaseAllowance(
+        address _spender,
+        uint256 _subtractedValue
+    ) public returns (bool success) {
+        uint256 oldValue = s_allowed[msg.sender][_spender];
+        if (_subtractedValue &gt; oldValue) {
+            s_allowed[msg.sender][_spender] = 0;
+        } else {
+            s_allowed[msg.sender][_spender] = oldValue - _subtractedValue;
+        }
+        emit Approval(msg.sender, _spender, s_allowed[msg.sender][_spender]);
+        return true;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function mint(address _to, uint256 _value) public returns (bool success) {</span>
+<span class="cstat-no" title="statement not covered" >        if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);</span>
+        s_totalSupply += _value;
+        s_balances[_to] += _value;
+<span class="cstat-no" title="statement not covered" >        emit Transfer(address(0), _to, _value, 0, s_balances[_to]);</span>
+<span class="cstat-no" title="statement not covered" >        return true;</span>
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function burn(address _from, uint256 _value) public returns (bool success) {</span>
+<span class="cstat-no" title="statement not covered" >        if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);</span>
+<span class="cstat-no" title="statement not covered" >        if (_value &gt; s_balances[_from])</span>
+            revert EnergyMarket__InsufficientBalance({
+                balance: s_balances[_from],
+                required: _value
+            });
+        s_totalSupply -= _value;
+        s_balances[_from] -= _value;
+<span class="cstat-no" title="statement not covered" >        emit Transfer(_from, address(0), _value, s_balances[_from], 0);</span>
+<span class="cstat-no" title="statement not covered" >        return true;</span>
+    }
+&nbsp;
+    // State Variables
+    uint256 private s_totalEnergySupplied;
+    uint256 private s_totalEnergyDemanded;
+    uint256 private s_totalUsers;
+    uint256 private s_endTime;
+    uint256 private s_supplyIndex;
+    uint256 private s_demandIndex;
+    uint256 public constant MAX_ENERGYPRICE = 50;
+&nbsp;
+    // Enum
+    enum EnergyState {
+        Register, // 0
+        Injected, // 1
+        Board, // 2
+        Match, // 3
+        Purchased // 4
+    }
+&nbsp;
+    // Structures
+    struct EnergyOwnership {
+        address addrOwner;
+        uint256 energyAmount;
+        uint256 energyState;
+        uint256 timestamp;
+    }
+    struct Supply {
+        address addrProsumer;
+        uint256 energySupplied;
+    }
+    struct Demand {
+        address addrConsumer;
+        uint256 energyDemanded;
+    }
+    struct EnergyMatched {
+        address addrProsumer;
+        address addrConsumer;
+        uint256 energyAmount;
+        uint256 timestamp;
+    }
+&nbsp;
+    // Mappings
+    mapping(address =&gt; uint256) private s_addrIndex;
+&nbsp;
+    // Arrays
+    EnergyOwnership[][] private s_energys;
+    EnergyOwnership[] private s_energy;
+    Supply[] private s_supplies;
+    Demand[] private s_demands;
+    EnergyMatched[] private s_matches;
+&nbsp;
+    // Events
+    event Gen(uint256 gen);
+    event EnergyCheck(
+        address addrOwner,
+        uint256 energyAmount,
+        uint256 energyState,
+        uint256 timestamp
+    );
+    event RoundStart(uint256 startTime, uint256 endTime);
+    event SellRequestCheck(address addr, uint256 amount);
+    event BuyRequestCheck(address addr, uint256 amount);
+    event EnergyMatchedCheck(
+        address addrProsumer,
+        address addrConsumer,
+        uint256 value,
+        uint256 timestamp
+    );
+&nbsp;
+    // Functions
+&nbsp;
+    // Getter functions
+    function getDSO() public view returns (address) {
+        return i_DSO;
+    }
+&nbsp;
+    function getTotalEnergySupplied() public view returns (uint256) {
+        return s_totalEnergySupplied;
+    }
+&nbsp;
+    function getTotalEnergyDemanded() public view returns (uint256) {
+        return s_totalEnergyDemanded;
+    }
+&nbsp;
+    function getTotalUsers() public view returns (uint256) {
+        return s_totalUsers;
+    }
+&nbsp;
+    function getEndTime() public view returns (uint256) {
+        return s_endTime;
+    }
+&nbsp;
+    function getIndexFromAddress(address _addr) public view returns (uint256) {
+        return s_addrIndex[_addr];
+    }
+&nbsp;
+    // function getEnergyOwnershipInfo(
+    //     address _addr
+    // ) public view returns (EnergyOwnership[] memory, uint256) {
+    //     return (
+    //         s_energys[s_addrIndex[_addr]],
+    //         s_energys[s_addrIndex[_addr]].length
+    //     );
+    // }
+&nbsp;
+    function getEnergyOwnershipInfo(
+        address _addr,
+        uint256 _index
+    ) public view returns (EnergyOwnership memory) {
+        return s_energys[s_addrIndex[_addr]][_index];
+    }
+&nbsp;
+    function getSupplyIndex() public view returns (uint256) {
+        return s_supplyIndex;
+    }
+&nbsp;
+    function getSupplyInfo(uint256 _index) public view returns (Supply memory) {
+        return s_supplies[_index];
+    }
+&nbsp;
+    function getDemandIndex() public view returns (uint256) {
+        return s_demandIndex;
+    }
+&nbsp;
+    function getDemandInfo(uint256 _index) public view returns (Demand memory) {
+        return s_demands[_index];
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function getMatchInfo(</span>
+        uint256 _index
+    ) public view returns (EnergyMatched memory) {
+<span class="cstat-no" title="statement not covered" >        return s_matches[_index];</span>
+    }
+&nbsp;
+    // Register function
+    function register() public {
+        s_addrIndex[msg.sender] = s_totalUsers;
+        EnergyOwnership memory _energy = EnergyOwnership(
+            msg.sender,
+            0,
+            uint256(EnergyState.Register),
+            block.timestamp
+        );
+        s_energy.push(_energy);
+        s_energys.push(s_energy);
+&nbsp;
+        emit EnergyCheck(
+            msg.sender,
+            0,
+            uint256(EnergyState.Register),
+            _energy.timestamp
+        );
+        s_totalUsers++;
+        delete s_energy;
+    }
+&nbsp;
+    // Inject Energy (Ei)
+    function inject(address _owner, uint256 _amount) public {
+        if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);
+        uint256 i = s_addrIndex[_owner];
+&nbsp;
+        EnergyOwnership memory _energy = EnergyOwnership(
+            _owner,
+            _amount,
+            uint256(EnergyState.Injected),
+            block.timestamp
+        );
+        s_energys[i].push(_energy);
+        uint256 j = s_energys[i].length - 1;
+&nbsp;
+        emit EnergyCheck(
+            _owner,
+            _amount,
+            uint256(EnergyState.Injected),
+            _energy.timestamp
+        );
+&nbsp;
+        // Aggregation
+        if (j != 1) {
+            s_energys[i][1].energyAmount += s_energys[i][j].energyAmount;
+            s_energys[i][1].timestamp = block.timestamp;
+            s_energys[i].pop();
+        }
+        emit Gen(0);
+    }
+&nbsp;
+    // Start Round
+    function roundStart() public {
+        if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);
+        uint256 startTime = block.timestamp;
+        s_endTime = startTime + 1 hours;
+        s_totalEnergyDemanded = 0;
+        s_totalEnergySupplied = 0;
+        emit RoundStart(startTime, s_endTime);
+    }
+&nbsp;
+    // Request to sell amount of intent to sell (Si)
+    function requestSell(uint256 _amount) public {
+        uint256 i = s_addrIndex[msg.sender];
+        uint256 injectedEnergy = s_energys[i][1].energyAmount;
+        if (injectedEnergy &lt; _amount)
+            revert EnergyMarket__InsufficientEnergyInjected({
+                energyAmount: injectedEnergy,
+                required: _amount
+            });
+        if (block.timestamp &gt; s_endTime) revert EnergyMarket__OutsideRound();
+&nbsp;
+        EnergyOwnership memory _energy = EnergyOwnership(
+            msg.sender,
+            _amount,
+            uint256(EnergyState.Board),
+            block.timestamp
+        );
+        s_energys[i].push(_energy);
+        s_energys[i][1].energyAmount = injectedEnergy - _amount;
+&nbsp;
+        Supply memory _supply = Supply(msg.sender, _amount);
+        s_supplies.push(_supply);
+        s_supplyIndex++;
+        s_totalEnergySupplied += _amount;
+&nbsp;
+        emit SellRequestCheck(msg.sender, _amount);
+    }
+&nbsp;
+    // Request to buy amount of intent to buy (Di)
+    function requestBuy(uint256 _amount) public {
+        if (_amount == 0) revert EnergyMarket__ZeroEnergyAmount();
+        if (block.timestamp &gt; s_endTime) revert EnergyMarket__OutsideRound();
+        uint256 balance = balanceOf(msg.sender);
+        uint256 maxPrice = _amount * MAX_ENERGYPRICE;
+        if (maxPrice &gt; balance)
+            revert EnergyMarket__InsufficientBalance({
+                balance: balance,
+                required: maxPrice
+            });
+&nbsp;
+        uint256 i = s_addrIndex[msg.sender];
+        EnergyOwnership memory _energy = EnergyOwnership(
+            msg.sender,
+            _amount,
+            uint256(EnergyState.Board),
+            block.timestamp
+        );
+        s_energys[i].push(_energy);
+&nbsp;
+        Demand memory demand = Demand(msg.sender, _amount);
+        s_demands.push(demand);
+        s_demandIndex++;
+        s_totalEnergyDemanded += _amount;
+&nbsp;
+        decreaseAllowance(i_DSO, balance);
+        approve(i_DSO, maxPrice);
+&nbsp;
+        emit BuyRequestCheck(msg.sender, _amount);
+    }
+&nbsp;
+    // Match
+<span class="fstat-no" title="function not covered" >    function matching() public {</span>
+        // Setting endTime of round to when the matching() function is called
+        s_endTime = block.timestamp;
+&nbsp;
+        // Local Variables for gas optimization
+<span class="cstat-no" title="statement not covered" >        uint256 totalSupplyOfEnergy = s_totalEnergySupplied;</span>
+<span class="cstat-no" title="statement not covered" >        uint256 totalDemandOfEnergy = s_totalEnergyDemanded;</span>
+<span class="cstat-no" title="statement not covered" >        uint256 supplyIndex = s_supplyIndex;</span>
+<span class="cstat-no" title="statement not covered" >        uint256 demandIndex = s_demandIndex;</span>
+&nbsp;
+        // q - Demand/Supply Ratio
+<span class="cstat-no" title="statement not covered" >        uint256 q = 1;</span>
+<span class="cstat-no" title="statement not covered" >        uint256 matchedSupplyIndex;</span>
+<span class="cstat-no" title="statement not covered" >        uint256 matchedDemandIndex;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        if (totalSupplyOfEnergy &gt; totalDemandOfEnergy) {</span>
+            q = (totalDemandOfEnergy * 100) / totalSupplyOfEnergy;
+&nbsp;
+            // Setting matched (actually sold) energy (Smi)
+<span class="cstat-no" title="statement not covered" >            for (uint256 i = 0; i &lt; supplyIndex; i++) {</span>
+<span class="cstat-no" title="statement not covered" >                Supply memory _supply = s_supplies[i];</span>
+                s_supplies[i].energySupplied =
+                    (_supply.energySupplied * q) /
+                    100;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >                uint256 addr_i = s_addrIndex[_supply.addrProsumer];</span>
+<span class="cstat-no" title="statement not covered" >                uint256 j = s_energys[addr_i].length - 1;</span>
+<span class="cstat-no" title="statement not covered" >                uint256 energyAmount = s_energys[addr_i][j].energyAmount;</span>
+&nbsp;
+                s_energys[addr_i][1].energyAmount +=
+                    energyAmount -
+                    (energyAmount * q) /
+                    100;
+                s_energys[addr_i][1].timestamp = block.timestamp;
+                s_energys[addr_i][j].energyAmount = (energyAmount * q) / 100;
+                s_energys[addr_i][j].energyState = uint256(EnergyState.Match);
+                s_energys[addr_i][j].timestamp = block.timestamp;
+            }
+        } else <span class="cstat-no" title="statement not covered" >if (totalSupplyOfEnergy &lt; totalDemandOfEnergy) {</span>
+            q = (totalSupplyOfEnergy * 100) / totalDemandOfEnergy;
+&nbsp;
+            // Setting matched (actually bought) energy (Dmi)
+<span class="cstat-no" title="statement not covered" >            for (uint256 i = 0; i &lt; demandIndex; i++) {</span>
+<span class="cstat-no" title="statement not covered" >                Demand memory _demand = s_demands[i];</span>
+<span class="cstat-no" title="statement not covered" >                uint256 addr_i = s_addrIndex[_demand.addrConsumer];</span>
+                s_demands[i].energyDemanded =
+                    (_demand.energyDemanded * q) /
+                    100;
+                s_energys[addr_i][1].energyAmount = _demand.energyDemanded;
+                s_energys[addr_i][1].energyState = uint256(EnergyState.Match);
+                s_energys[addr_i][1].timestamp = block.timestamp;
+            }
+        }
+&nbsp;
+        // Getting each supply and demand to match
+<span class="cstat-no" title="statement not covered" >        Supply memory supply = s_supplies[matchedSupplyIndex];</span>
+<span class="cstat-no" title="statement not covered" >        Demand memory demand = s_demands[matchedDemandIndex];</span>
+&nbsp;
+        // Matching
+        do {
+            if (supply.energySupplied &gt; demand.energyDemanded) {
+                // Matching demand.energyDemanded of energy
+                supply.energySupplied -= demand.energyDemanded;
+                EnergyMatched memory _match = EnergyMatched(
+                    supply.addrProsumer,
+                    demand.addrConsumer,
+                    demand.energyDemanded,
+                    block.timestamp
+                );
+                s_matches.push(_match);
+                emit EnergyMatchedCheck(
+                    _match.addrProsumer,
+                    _match.addrConsumer,
+                    _match.energyAmount,
+                    _match.timestamp
+                );
+                matchedDemandIndex++;
+                if (matchedDemandIndex &gt;= demandIndex) break;
+                demand = s_demands[matchedDemandIndex];
+            } else if (supply.energySupplied &lt; demand.energyDemanded) {
+                // Matching supply.energySupplied of energy
+                demand.energyDemanded -= supply.energySupplied;
+                EnergyMatched memory _match = EnergyMatched(
+                    supply.addrProsumer,
+                    demand.addrConsumer,
+                    supply.energySupplied,
+                    block.timestamp
+                );
+                s_matches.push(_match);
+                emit EnergyMatchedCheck(
+                    _match.addrProsumer,
+                    _match.addrConsumer,
+                    _match.energyAmount,
+                    _match.timestamp
+                );
+                matchedSupplyIndex++;
+                if (matchedSupplyIndex &gt;= supplyIndex) break;
+                supply = s_supplies[matchedSupplyIndex];
+            } else {
+                // Matching equal energy
+                EnergyMatched memory _match = EnergyMatched(
+                    supply.addrProsumer,
+                    demand.addrConsumer,
+                    supply.energySupplied,
+                    block.timestamp
+                );
+                s_matches.push(_match);
+                emit EnergyMatchedCheck(
+                    _match.addrProsumer,
+                    _match.addrConsumer,
+                    _match.energyAmount,
+                    _match.timestamp
+                );
+                matchedSupplyIndex++;
+                matchedDemandIndex++;
+                if (matchedSupplyIndex &gt;= supplyIndex) break;
+                if (matchedDemandIndex &gt;= demandIndex) break;
+                supply = s_supplies[matchedSupplyIndex];
+                demand = s_demands[matchedDemandIndex];
+            }
+        } while (true);
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        uint256 userCount = s_totalUsers;</span>
+<span class="cstat-no" title="statement not covered" >        for (uint256 i = 0; i &lt; userCount; i++) {</span>
+<span class="cstat-no" title="statement not covered" >            uint256 maxLen = s_energys[i].length;</span>
+<span class="cstat-no" title="statement not covered" >            for (uint256 j = maxLen - 1; j &gt; 1; j--) {</span>
+<span class="cstat-no" title="statement not covered" >                if (s_energys[i][j].energyAmount == 0) {</span>
+<span class="cstat-no" title="statement not covered" >                    for (uint256 k = j; k &lt; maxLen - 1; k++) {</span>
+                        s_energys[i][k] = s_energys[i][k + 1];
+                    }
+<span class="cstat-no" title="statement not covered" >                    s_energys[i].pop()</span>;
+                }
+            }
+        }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        emit Gen(0);</span>
+    }
+&nbsp;
+    // Trade
+<span class="fstat-no" title="function not covered" >    function trade(uint256 _price) public {</span>
+<span class="cstat-no" title="statement not covered" >        if (msg.sender != i_DSO) revert EnergyMarket__NotDSO(msg.sender);</span>
+<span class="cstat-no" title="statement not covered" >        uint256 price = _price;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        uint256 matchesLen = s_matches.length;</span>
+<span class="cstat-no" title="statement not covered" >        for (uint256 i = 0; i &lt; matchesLen; i++) {</span>
+<span class="cstat-no" title="statement not covered" >            EnergyMatched memory _match = s_matches[i];</span>
+<span class="cstat-no" title="statement not covered" >            uint256 index = s_addrIndex[_match.addrConsumer];</span>
+<span class="cstat-no" title="statement not covered" >            transferFrom(</span>
+                _match.addrConsumer,
+                _match.addrProsumer,
+                _match.energyAmount * price
+            );
+            s_energys[index][1].energyAmount = _match.energyAmount;
+            s_energys[index][1].energyState = uint256(EnergyState.Purchased);
+            s_energys[index][1].timestamp = block.timestamp;
+        }
+&nbsp;
+        delete s_matches;
+<span class="cstat-no" title="statement not covered" >        emit Gen(0);</span>
+    }
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Mon Apr 17 2023 14:00:05 GMT+0530 (India Standard Time)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>

@@ -1,14 +1,6 @@
 node_modules
-Resources
 .env
 .prettierignore
 .prettierrc
 .solhintignore
-
-# Hardhat files
-artifacts
-cache
-coverage.json
-coverage
-deployments
 ```
